@@ -18,6 +18,7 @@
 7. [Catálogo Oficial de Regras de Auditoria (v1.0.0)](#7-catálogo-oficial-de-regras-de-auditoria-v100)
 8. [Matriz de Resolução de Apontamentos de QA (QA-001 a QA-015)](#8-matriz-de-resolução-de-apontamentos-de-qa-qa-001-a-qa-015)
 9. [Guia de Operação e Verificação da Release](#9-guia-de-operação-e-verificação-da-release)
+10. [Conclusão & Próximos Passos](#10-conclusão--próximos-passos)
 
 ---
 
@@ -29,7 +30,7 @@ A versão **`v1.0.0`** consolida o ciclo de engenharia autônoma do **Onion Audi
 - **Arquitetura 100% Serverless & Scale-to-Zero:** Custo zero em ociosidade na AWS (S3 Website + API Gateway HTTP API v2 + AWS Lambda).
 - **Zero Dependências Externas (Pure Stdlib):** Runtime Python 3.12 utilizando apenas a biblioteca padrão, eliminando riscos de supply chain e alcançando inicialização sub-50ms.
 - **Proteções de Hardening Ativas:** Limite estrito de 512 KB por requisição, proteção anti-recursão contra DoS, blindagem anti-evasão sintática/semântica e sanitização defensiva anti-XSS no frontend.
-- **Homologação Completa em Produção:** 100% de aprovação nos testes em produção diretamente contra a infraestrutura ativa na AWS (`us-east-2`), com latência média de ~64.6 ms e zero vazamento de informações internas.
+- **Homologação Completa em Produção:** 100% de aprovação nos testes em produção diretamente contra a infraestrutura ativa na AWS (`us-east-2`), com latência média de ~78.4 ms e zero vazamento de informações internas.
 
 ---
 
@@ -58,20 +59,20 @@ No **Ciclo 2** (executado na branch `qa/stress-audit`), uma equipe especializada
 1. **Bateria de Estresse Local e Fuzzing (`qa/test_stress_local.py`):**
    - Payloads gigantescos (de 1 MB a 10 MB) para forçar esgotamento de memória (OOM).
    - Explosão de statements JSON (mais de 500 statements em uma única política).
-   - Aninhamento recursivo profundo (estruturas com até 2.000 níveis) para induzir estouro de pilha (*stack overflow*) no runtime Python.
-   - Payloads com alta complexidade de regex para testar ataques de ReDoS (*Regular Expression Denial of Service*).
-2. **Bateria de Evasão Semântica (`qa/test_evasion_bypass.py`):**
-   - Evasão de casing em chaves IAM: uso de minúsculas (`statement`, `action`, `resource`) ou casing misto para contornar checagens baseadas em PascalCase.
-   - Inversão lógica via `NotResource`: concessão de `Effect: Allow` com `NotResource`, concedendo privilégios universais velados.
-   - Wildcards em listas de ações (`["s3:GetObject", "*"]`) e em radicais de verbos (`s3:Get*`, `ec2:Describe*`).
-   - Evasão de regras de Security Group em Terraform: abertura para a internet (`0.0.0.0/0`) usando intervalos amplos (`from_port = 0, to_port = 65535`) em vez de portas exatas (22, 3389).
-   - Uso de ACLs semi-públicas do Amazon S3 (`authenticated-read`) que concedem acesso de leitura para qualquer conta AWS no mundo.
-3. **Auditoria Estática de Segurança no Frontend (`qa/audit_frontend.py`):**
-   - Ausência de cabeçalho ou meta tag `Content-Security-Policy` (CSP).
-   - Risco de XSS caso parâmetros de severidade ou textos de achados não fossem rigorosamente tratados antes da injeção no DOM.
-   - Ausência de controle de timeout nas chamadas `fetch()`, permitindo congelamento indefinido da interface em falhas de rede.
-   - Uso de chamadas síncronas bloqueantes `alert()`.
-4. **Relatório Gerado:** Consolidação formal no documento `QA_REPORT.md` contendo 15 vulnerabilidades catalogadas (`QA-001` a `QA-015`).
+   - Aninhamento recursivo excessivo (estruturas com mais de 50 níveis de profundidade).
+   - Payloads corrompidos, JSON inválido e caracteres de escape maliciosos.
+2. **Bateria de Evasão Semântica e Bypass (`qa/test_evasion_bypass.py`):**
+   - Variação de casing de palavras-chave IAM (`statement`, `action`, `resource` em minúsculas).
+   - Uso de `NotResource` combinado com `Effect: Allow` para conceder permissões veladas.
+   - Wildcards inseridos dentro de listas de strings (`["s3:GetObject", "*"]`) ou radicais (`s3:Get*`).
+   - Faixas amplas de portas em Security Groups (ex: `0-65535`) expondo portas sensíveis (22, 3389, 5432, 3306).
+   - ACL semi-pública em buckets S3 (`authenticated-read`).
+   - Falsos positivos gerados por guardrails legítimos da AWS com `Effect: Deny` (ex: negação sem TLS).
+3. **Sondas de Produção e Auditoria Estática de Frontend (`qa/probe_production.py` e `qa/audit_frontend.py`):**
+   - Sondas controladas respeitando o teto de 15 requisições HTTP e intervalo mínimo de 1,0s.
+   - Varredura de 18 controles de segurança estática no frontend SPA contra XSS no DOM, timeouts e falta de validações de entrada.
+4. **Consolidação das Descobertas:**
+   - Formalização do documento canônico `QA_REPORT.md` detalhando os 15 apontamentos categorizados (`QA-001` a `QA-015`), com classificação de severidade e especificações exatas de correção.
 
 ---
 
@@ -105,66 +106,66 @@ No **Ciclo 3** (executado na branch `fix/hardening-v1`), foi implementado um pac
 ### 4.4. Infraestrutura Defensiva & Suíte de Regressão:
 - **Throttling e Burst no API Gateway (`QA-015`):** Configurado `throttling_rate_limit = 50` req/s e `throttling_burst_limit = 100` reqs no estágio `$default` do HTTP API v2.
 - **Suíte Oficial de Regressão 1-para-1 (`src/test_hardening_regression.py`):** 15 testes dedicados cobrindo cada apontamento de QA, atingindo 100% de aprovação (56 testes no backend, 94 testes nas baterias de QA e 18 controles de frontend = 168 verificações com zero falhas).
-- **Relatório e Merge:** Formalização do documento `HARDENING_REPORT.md`, merge para a branch `main` (`f01d0aa`) e reconciliação idempotente de estado Terraform (`284bdcb`).
+- **Relatório e Merge:** Formalização do documento canônico `HARDENING_REPORT.md` e merge com validação idempotente das correções integradas na branch `main` (`dc521c8`).
 
 ---
 
 ## 5. Ciclo 4: Validação em Produção & Re-teste Pós-Hardening
 
-No **Ciclo 4** (Camada 3), a release candidate `v1.0.0` foi submetida à homologação oficial diretamente contra a infraestrutura em produção na AWS (`us-east-2`).
+No **Ciclo 4** (Camada 3), a versão **`v1.0.0`** foi submetida à homologação oficial e rigorosa diretamente contra a infraestrutura ativa de produção na AWS (`us-east-2`).
 
 ### 5.1. Mecanismo do Validador de Release (`qa/verify_release_v1.py`):
-- Desenvolvido exclusivamente com bibliotecas padrão do Python 3 (`urllib.request`, `json`, `time`, `re`, `pathlib`).
-- **Trava de Orçamento HTTP Rígida:** Limite máximo de 15 requisições HTTP (`MAX_ALLOWED_HTTP_REQUESTS = 15`) com interrupção imediata por exceção em caso de estouro.
-- **Intervalo Defensivo:** Delay de 1,0 segundo entre chamadas sucessivas para garantir estabilidade operacional e evitar alarmes de saturação.
-- **Verificador Ativo de Fuga de Dados:** Varredura em cada payload de resposta contra strings sensíveis (`Traceback`, `File "*.py"`, `/var/task/`, chaves e segredos AWS).
+- Desenvolvido exclusivamente com a biblioteca padrão do Python 3 (`urllib.request`, `json`, `time`, `re`, `pathlib`).
+- **Trava de Orçamento HTTP Rígida:** Limite máximo de 15 requisições HTTP permitidas (`MAX_ALLOWED_HTTP_REQUESTS = 15`) com interrupção imediata por exceção em caso de estouro.
+- **Intervalo Defensivo:** Delay mandatório de 1,0 segundo entre chamadas sucessivas (`time.sleep(1.0)`) para garantir estabilidade operacional e evitar sobrecarga do ambiente de produção.
+- **Verificador Ativo de Fuga de Dados:** Varredura em 100% dos payloads de resposta contra strings sensíveis (`Traceback`, `File "*.py"`, `/var/task/`, chaves e segredos AWS).
 
 ### 5.2. Resultados dos Cenários de Teste em Produção:
 
 | ID | Cenário Homologado em Produção | Método / Alvo | Status HTTP | Latência (ms) | Parecer Técnico |
 | :---: | :--- | :--- | :---: | :---: | :--- |
-| **V1-01** | **Preflight CORS OPTIONS /audit** | `OPTIONS` / API Gateway | `204` | 59.52 ms | **APROVADO** — Headers RFC válidos (`Origin: *`, `Methods: OPTIONS,POST`). |
-| **V1-02** | **Auditoria IAM Legítima** | `POST` / API Gateway | `200` | 90.58 ms | **APROVADO** — Score `100` (LOW), zero achados de segurança, conformidade de schema. |
-| **V1-03** | **Auditoria Terraform Legítima** | `POST` / API Gateway | `200` | 58.54 ms | **APROVADO** — Score `100` (LOW), zero achados de segurança, HCL seguro processado. |
-| **V1-04** | **Detecção de Evasão IAM (Wildcard em Lista)** | `POST` / API Gateway | `200` | 59.76 ms | **APROVADO** — Disparou `IAM-001` (`CRITICAL`), Score `45`, mitigando evasão `["s3:GetObject", "*"]`. |
-| **V1-05** | **Detecção de Evasão TF (SG Faixa 0-65535)** | `POST` / API Gateway | `200` | 61.86 ms | **APROVADO** — Disparou `TF-001` (`CRITICAL`), Score `65`, portas 22, 3389, 5432, 3306 identificadas. |
-| **V1-06** | **Teto de Payload (>512 KB)** | `POST` / API Gateway | `413` | 113.69 ms | **APROVADO** — Payload de ~600 KB rejeitado limpo com HTTP 413 (`Payload Too Large`), sem crash. |
-| **V1-07** | **JSON Malformado no Corpo** | `POST` / API Gateway | `400` | 61.86 ms | **APROVADO** — Erro controlado com HTTP 400 sem stack trace nem caminhos `/var/task`. |
-| **V1-08** | **Disponibilidade do Frontend S3** | `GET` / S3 Static Web | `200` | 31.57 ms | **APROVADO** — HTML integro (9.272 bytes), assets `app.js` e `config.js` referenciados corretamente. |
-| **V1-09** | **Controle Anti-XSS no Frontend** | `GET` / `app.js` (S3) | `200` | 44.17 ms | **APROVADO** — Função `escapeHtml` com coerção defensiva e escape de entidades confirmado. |
+| **V1-01** | **Preflight CORS OPTIONS /audit** | `OPTIONS` / API Gateway | `204` | 55.13 ms | **APROVADO** — Headers RFC válidos (`Origin: *`, `Methods: OPTIONS,POST`, `Headers: authorization,content-type`). |
+| **V1-02** | **Auditoria IAM Legítima** | `POST` / API Gateway | `200` | 81.95 ms | **APROVADO** — Score `100` (LOW), zero achados de segurança, conformidade total de schema. |
+| **V1-03** | **Auditoria Terraform Legítima** | `POST` / API Gateway | `200` | 90.67 ms | **APROVADO** — Score `100` (LOW), zero achados de segurança, HCL seguro processado. |
+| **V1-04** | **Detecção de Evasão IAM (Wildcard em Lista)** | `POST` / API Gateway | `200` | 71.89 ms | **APROVADO** — Disparou `IAM-001` (`CRITICAL`), Score `45`, mitigando evasão `["s3:GetObject", "*"]`. |
+| **V1-05** | **Detecção de Evasão TF (SG Faixa 0-65535)** | `POST` / API Gateway | `200` | 82.50 ms | **APROVADO** — Disparou `TF-001` (`CRITICAL`), Score `65`, portas 22, 3389, 5432, 3306 identificadas na faixa ampla. |
+| **V1-06** | **Teto de Payload (>512 KB)** | `POST` / API Gateway | `413` | 169.83 ms | **APROVADO** — Payload de ~600 KB rejeitado limpo com HTTP 413 (`Payload Too Large`), sem crash ou fuga. |
+| **V1-07** | **JSON Malformado no Corpo** | `POST` / API Gateway | `400` | 67.68 ms | **APROVADO** — Erro controlado com HTTP 400 sem stack trace nem caminhos internos `/var/task`. |
+| **V1-08** | **Disponibilidade do Frontend S3** | `GET` / S3 Static Web | `200` | 42.10 ms | **APROVADO** — HTML íntegro (9.334 bytes), assets `app.js` e `config.js` referenciados corretamente. |
+| **V1-09** | **Controle Anti-XSS no Frontend** | `GET` / `app.js` (S3) | `200` | 44.33 ms | **APROVADO** — Função `escapeHtml` com coerção defensiva e escape de entidades HTML confirmada no asset live. |
 
-- **Requisições Utilizadas:** 9 de 15 permitidas (60% do orçamento consumido).
-- **Taxa de Sucesso em Produção:** 100,0% (9 de 9 testes aprovados).
-- **Vazamentos Detectados:** Zero vazamentos.
-- **Arquivo de Evidência Gerado:** `qa/results_release_v1.json` (Commit `37cc4bf`).
+- **Requisições Utilizadas:** 9 de 15 permitidas (60% do orçamento consumido, 40% de margem de segurança).
+- **Taxa de Sucesso em Produção:** 100,0% (9 de 9 testes aprovados, 0 falhas).
+- **Vazamentos Detectados:** Zero vazamentos de informação ou stack traces identificados.
+- **Arquivo de Evidência Gerado:** `qa/results_release_v1.json` (Commit de validação: `e53653a`).
 
 ---
 
 ## 6. Métricas de Desempenho e Latência em Produção
 
-O comportamento de tempo de resposta da infraestrutura em produção na região `us-east-2` foi medido durante a execução da suíte de release:
+O comportamento de tempo de resposta da infraestrutura Serverless em produção na região `us-east-2` foi medido durante a execução da suíte de release:
 
 ```
 +--------------------------------------------------------------------------------+
 | Distribuição de Latência das Requisições em Produção (AWS us-east-2)           |
 +--------------------------------------------------------------------------------+
-| V1-08 (Frontend S3 HTML)             | 31.57 ms                                |
-| V1-09 (Frontend S3 app.js)           | 44.17 ms                                |
-| V1-03 (Auditoria Terraform HCL)      | 58.54 ms                                |
-| V1-01 (Preflight CORS OPTIONS)       | 59.52 ms                                |
-| V1-04 (Evasão IAM Wildcard)          | 59.76 ms                                |
-| V1-05 (Evasão TF Security Group)     | 61.86 ms                                |
-| V1-07 (Erro 400 JSON Malformado)     | 61.86 ms                                |
-| V1-02 (Auditoria IAM Legítima)       | 90.58 ms                                |
-| V1-06 (Rejeição 413 Payload >512 KB) | 113.69 ms                               |
+| V1-08 (Frontend S3 HTML)             | 42.10 ms                                |
+| V1-09 (Frontend S3 app.js)           | 44.33 ms                                |
+| V1-01 (Preflight CORS OPTIONS)       | 55.13 ms                                |
+| V1-07 (Erro 400 JSON Malformado)     | 67.68 ms                                |
+| V1-04 (Evasão IAM Wildcard em Lista) | 71.89 ms                                |
+| V1-02 (Auditoria IAM Legítima)       | 81.95 ms                                |
+| V1-05 (Evasão TF Security Group)     | 82.50 ms                                |
+| V1-03 (Auditoria Terraform HCL)      | 90.67 ms                                |
+| V1-06 (Rejeição 413 Payload >512 KB) | 169.83 ms                               |
 +--------------------------------------------------------------------------------+
 ```
 
-- **Latência Mínima:** 31.57 ms (S3 Static Website Hosting)
-- **Latência Máxima:** 113.69 ms (Validação e rejeição de payload grande no API Gateway / Lambda)
-- **Latência Média Global:** ~64.62 ms
-- **Latência Média do Backend API Gateway + Lambda:** ~72.26 ms
-- **Consistência de Resposta:** Todas as requisições normais de auditoria completadas em menos de 100 ms.
+- **Latência Mínima:** 42.10 ms (S3 Static Website Hosting)
+- **Latência Máxima:** 169.83 ms (Validação e rejeição de payload volumétrico de ~600 KB no API Gateway / Lambda)
+- **Latência Média Global:** 78.41 ms
+- **Latência Média do Backend API Gateway + Lambda:** 88.52 ms
+- **Consistência de Resposta:** Todas as requisições normais de auditoria completadas com alta previsibilidade e sub-100 ms.
 
 ---
 
@@ -200,7 +201,7 @@ O comportamento de tempo de resposta da infraestrutura em produção na região 
 
 ## 8. Matriz de Resolução de Apontamentos de QA (QA-001 a QA-015)
 
-Todos os apontamentos originados no Ciclo de QA foram corrigidos e auditados 1-para-1:
+Todos os 15 apontamentos originados no Ciclo de QA foram corrigidos e auditados 1-para-1:
 
 | ID QA | Severidade | Componente | Descrição da Remediação | Teste Automatizado | Status |
 | :---: | :---: | :--- | :--- | :--- | :---: |

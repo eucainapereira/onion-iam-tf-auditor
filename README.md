@@ -34,7 +34,7 @@
   - [6.2. Contrato de Entrada (Request)](#62-contrato-de-entrada-request)
   - [6.3. Contrato de Saída (Response)](#63-contrato-de-saída-response)
   - [6.4. Catálogo de Regras de Auditoria](#64-catálogo-de-regras-de-auditoria)
-- [7. Segurança, Resiliência & Hardening (v1.0.0)](#7-segurança-resiliência--hardening-v100)
+- [Segurança, Resiliência & Hardening (v1.0.0)](#segurança-resiliência--hardening-v100)
 - [8. Outputs Oficiais do Terraform](#8-outputs-oficiais-do-terraform)
 - [9. Guia de Operação: Deploy & Destroy](#9-guia-de-operação-deploy--destroy)
   - [9.1. Pré-requisitos](#91-pré-requisitos)
@@ -326,7 +326,7 @@ A resposta da API retorna status HTTP `200 OK` (ou `400 Bad Request` em caso de 
 
 ---
 
-## 7. Segurança, Resiliência & Hardening (v1.0.0)
+## Segurança, Resiliência & Hardening (v1.0.0)
 
 A partir da versão **v1.0.0**, o **Onion Auditor** incorpora um conjunto rigoroso de proteções de AppSec, resiliência operacional e defesas anti-evasão validadas em produção:
 
