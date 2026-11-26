@@ -667,6 +667,84 @@ class TestIAMEvasionBypass(EvasionTestBase):
         self.assertIn("IAM-001", findings)
         self.assertIn("IAM-002", findings)
 
+    def test_eva_iam_notaction_string_bypass(self) -> None:
+        """TC-EVA-IAM-30: Uso perigoso de NotAction como string com Allow (IAM-007)."""
+        policy = {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Sid": "NotActionStringEvasion",
+                    "Effect": "Allow",
+                    "NotAction": "s3:DeleteBucket",
+                    "Resource": "*",
+                }
+            ],
+        }
+        _, findings = self.invoke_engine(
+            scenario_id="TC-EVA-IAM-NOTACTION-STRING-BYPASS",
+            category="IAM Logical Inversion Evasion",
+            vector="NotAction Single String Inversion",
+            description="Uso perigoso de NotAction concedendo todas as ações exceto s3:DeleteBucket",
+            audit_type="iam",
+            content=json.dumps(policy),
+            expected_outcome="Detectar IAM-007 (Uso Perigoso de NotAction com Allow)",
+            classification="BLOCKED",
+            security_verdict="Motor detectou o uso de NotAction com efeito Allow e disparou IAM-007 com sucesso.",
+        )
+        self.assertIn("IAM-007", findings)
+
+    def test_eva_iam_notaction_list_bypass(self) -> None:
+        """TC-EVA-IAM-31: Uso perigoso de NotAction como lista de ações com Allow (IAM-007)."""
+        policy = {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Sid": "NotActionListEvasion",
+                    "Effect": "Allow",
+                    "NotAction": ["iam:*", "s3:Delete*"],
+                    "Resource": "*",
+                }
+            ],
+        }
+        _, findings = self.invoke_engine(
+            scenario_id="TC-EVA-IAM-NOTACTION-LIST-BYPASS",
+            category="IAM Logical Inversion Evasion",
+            vector="NotAction List Inversion",
+            description="Inversão lógica NotAction com lista de ações excluídas mantendo Allow universal",
+            audit_type="iam",
+            content=json.dumps(policy),
+            expected_outcome="Detectar IAM-007",
+            classification="BLOCKED",
+            security_verdict="Motor validou a lista de NotAction e disparou a regra crítica IAM-007.",
+        )
+        self.assertIn("IAM-007", findings)
+
+    def test_eva_iam_notaction_lowercase_bypass(self) -> None:
+        """TC-EVA-IAM-32: Evasão combinada de casing minúsculo ('notaction') e NotAction com Allow."""
+        policy = {
+            "version": "2012-10-17",
+            "statement": [
+                {
+                    "sid": "LowercaseNotActionEvasion",
+                    "effect": "allow",
+                    "notaction": "s3:DeleteBucket",
+                    "resource": "*",
+                }
+            ],
+        }
+        _, findings = self.invoke_engine(
+            scenario_id="TC-EVA-IAM-NOTACTION-LOWERCASE-BYPASS",
+            category="IAM Logical Inversion Evasion",
+            vector="NotAction Casing Camouflage",
+            description="Uso de chave 'notaction' minúscula para tentar burlar a detecção de IAM-007",
+            audit_type="iam",
+            content=json.dumps(policy),
+            expected_outcome="Detectar IAM-007 após normalização de casing",
+            classification="BLOCKED",
+            security_verdict="Motor normalizou a chave minúscula 'notaction' para PascalCase e disparou IAM-007.",
+        )
+        self.assertIn("IAM-007", findings)
+
     # ----------------------------------------------------------------------
     # 6. iam:PassRole com Condition vazia ({}) e validações
     # ----------------------------------------------------------------------

@@ -10,29 +10,29 @@
 
 ## 1. Sumário Executivo
 
-Durante o ciclo de encerramento de qualidade da Camada 5, foi implementada a suíte oficial de regressão 1-para-1 (`src/test_hardening_regression.py`) e executada a re-validação integral de todos os componentes de software, manifestos de infraestrutura e controles do frontend SPA.
+Durante o ciclo de encerramento de qualidade da Camada 5, foi implementada e consolidada a suíte oficial de regressão 1-para-1 (`src/test_hardening_regression.py`) e executada a re-validação integral de todos os componentes de software, manifestos de infraestrutura e controles do frontend SPA.
 
-Todas as **15 vulnerabilidades, bypasses semânticos e fragilidades de resiliência** documentadas no contrato de entrada `QA_REPORT.md` (`QA-001` a `QA-015`) foram verificadas contra testes automatizados dedicados. O sistema atingiu estabilidade plena, zero quebras de contrato de API, conformidade estrita com o princípio de menor privilégio e blindagem contra ataques de injeção, DoS e evasão de parsing.
+Todas as **16 vulnerabilidades, vetores de evasão semântica e fragilidades de resiliência** documentadas no contrato de entrada `QA_REPORT.md` (`QA-001` a `QA-016`) foram verificadas contra testes automatizados dedicados. O ecossistema atingiu estabilidade plena, zero quebras de contrato de API, conformidade estrita com o princípio de menor privilégio e blindagem contra ataques de injeção, DoS e evasão de parsing.
 
 ### Indicadores Consolidados da Suíte de Testes
 
 | Categoria da Suíte | Escopo | Total de Cenários | Aprovados | Falhas / Bypasses |
 | :--- | :--- | :---: | :---: | :---: |
-| **Suíte Unitária do Backend (`src`)** | Regras de auditoria, Handler Lambda e Regressão 1-para-1 | 56 | 56 (100%) | 0 |
-| **Bateria de Evasão Semântica (`qa/test_evasion_bypass.py`)** | Wildcards, casing, inversões lógicas, falsos positivos | 52 | 52 (100%) | 0 |
-| **Bateria de Estresse Local (`qa/test_stress_local.py`)** | Payloads até 10 MB, aninhamentos 2.000 níveis, DoS, Fuzzing | 42 | 42 (100%) | 0 |
+| **Suíte Unitária do Backend (`src`)** | Regras de auditoria, Handler Lambda e Regressão 1-para-1 | 80 | 80 (100%) | 0 |
+| **Bateria de Evasão Semântica (`qa/test_evasion_bypass.py`)** | Wildcards, casing, inversões lógicas, falsos positivos | 55 | 55 (100%) | 0 |
+| **Bateria de Estresse Local (`qa/test_stress_local.py`)** | Payloads até 10 MB, aninhamentos 2.000 níveis, DoS, Fuzzing | 48 | 48 (100%) | 0 |
 | **Auditoria Estática Frontend (`qa/audit_frontend.py`)** | Anti-XSS, CSP, AbortController, sanitização, CSS seguro | 18 controles | 18 (100%) | 0 |
 | **Validação de Infraestrutura (`terraform validate`)** | Sintaxe HCL, rate limiting, CORS e conformidade AWS | 7 recursos | Válido | 0 |
-| **TOTAL CONSOLIDADO** | **Auditoria e Verificação Global de Qualidade** | **168 verificações** | **168 (100%)** | **0** |
+| **TOTAL CONSOLIDADO** | **Auditoria e Verificação Global de Qualidade** | **201 verificações** | **201 (100%)** | **0** |
 
 - **Score de Segurança do Frontend:** **100/100 (Postura: GOOD)**
 - **Vulnerabilidades Críticas Remanescentes:** **0**
 - **Vulnerabilidades Altas Remanescentes:** **0**
-- **Taxa Global de Aprovação dos Testes:** **100% (168/168)**
+- **Taxa Global de Aprovação dos Testes:** **100% (201/201)**
 
 ---
 
-## 2. Matriz Consolidada de Rastreabilidade e Resolução (QA-001 a QA-015)
+## 2. Matriz Consolidada de Rastreabilidade e Resolução (QA-001 a QA-016)
 
 A tabela abaixo estabelece o mapeamento estrito 1-para-1 entre o identificador do apontamento de QA, sua severidade original, a remediação técnica aplicada, o teste de regressão automatizado comprobatório e o veredito final de homologação:
 
@@ -52,7 +52,8 @@ A tabela abaixo estabelece o mapeamento estrito 1-para-1 entre o identificador d
 | **`QA-012`** | **LOW** | `web/app.js`<br>`web/index.html` | Erradicação total de chamadas a `alert()` nativo síncrono, substituídas por banner de notificação acessível no DOM com atributo `role="alert"` (`showAlert` / `hideAlert`). | `test_qa_012_frontend_no_synchronous_blocking_alert` em `src/test_hardening_regression.py` | **RESOLVIDO** |
 | **`QA-013`** | **LOW** | `web/app.js` | Validação de cabeçalho `Content-Type` contendo `application/json` e checagem de `response.ok` antes de executar `response.json()`, com fallback seguro para `response.text()`. | `test_qa_013_frontend_safe_json_deserialization` em `src/test_hardening_regression.py` | **RESOLVIDO** |
 | **`QA-014`** | **LOW** | `web/app.js` | Validação estrita de URL manual através do construtor de plataforma `new URL(val)`, exigindo estritamente esquemas web autorizados (`http:` ou `https:`). | `test_qa_014_frontend_api_url_protocol_validation` em `src/test_hardening_regression.py`<br>`CTRL-INP-URL-CHECK` em `qa/audit_frontend.py` | **RESOLVIDO** |
-| **`QA-015`** | **LOW / INFO** | `src/handler.py`<br>`terraform/*.tf` | Parametrização de CORS via variável de ambiente `ALLOWED_ORIGIN` e configuração de `throttling_burst_limit` (100) e `throttling_rate_limit` (50) no estágio do API Gateway HTTP API v2. | `test_qa_015_cors_and_rate_limiting_infrastructure` em `src/test_hardening_regression.py` | **RESOLVIDO** |
+| **`QA-015`** | **LOW / INFO** | `src/handler.py`<br>`terraform/*.tf` | Parametrização de CORS via variável de ambiente `ALLOWED_ORIGIN` e configuração calibrada de `throttling_burst_limit` (50) e `throttling_rate_limit` (20) no estágio do API Gateway HTTP API v2. | `test_qa_015_cors_and_rate_limiting_infrastructure` em `src/test_hardening_regression.py` | **RESOLVIDO** |
+| **`QA-016`** | **LOW / INFO** | `web/index.html`<br>`web/styles.css` | Adição de `crossorigin="anonymous"` na folha de estilos do Google Fonts, definição de fontes de fallback locais do sistema operacional (`--font-sans` e `--font-mono`) e ausência total de `@import` ou `url()` em `styles.css`. | `test_qa_016_frontend_fonts_external_asset_security` em `src/test_hardening_regression.py`<br>`CTRL-CSS-NO-IMPORT` e `CTRL-CSS-NO-URLS` em `qa/audit_frontend.py` | **RESOLVIDO** |
 
 ---
 
@@ -66,15 +67,16 @@ A tabela abaixo estabelece o mapeamento estrito 1-para-1 entre o identificador d
 5. **ACL Semi-Pública S3 `authenticated-read` (`QA-006`):** Em ambientes corporativos, permitir leitura a qualquer identidade autenticada na AWS globalmente equivale a vazamento de dados. A regex `PUBLIC_S3_ACL_PATTERN` agora abrange `public-read`, `public-read-write` e `authenticated-read`, penalizando buckets com `TF-002` (Severidade `HIGH`).
 6. **Detecção Abrangente de Wildcards em Radicais IAM (`QA-007`):** Statements com ações que utilizam curingas intermediários ou no radical verbal (`s3:Get*`, `s3:Put*`, `ec2:Describe*`) agora são capturados como `IAM-001` (`severity: "CRITICAL"`).
 7. **Proteção Contra Explosão de Statements e FinOps DoS (`QA-010`):** Foi imposto o limite `MAX_ALLOWED_STATEMENTS = 500`. Documentos com mais de 500 statements são imediatamente rejeitados com `HTTP 400 Bad Request` antes de exaurir a memória de 128 MB alocada para a Lambda.
-8. **Configuração Defensiva de Tráfego e CORS (`QA-015`):** O API Gateway HTTP API v2 possui configurações no `$default` stage com `throttling_burst_limit = 100` e `throttling_rate_limit = 50`, absorvendo rajadas e mitigando ataques volumétricos. O cabeçalho de resposta CORS consome `ALLOWED_ORIGIN` injetado via variável de ambiente.
+8. **Configuração Defensiva de Tráfego e CORS (`QA-015`):** O API Gateway HTTP API v2 possui configurações no `$default` stage calibradas para `throttling_burst_limit = 50` e `throttling_rate_limit = 20`, absorvendo rajadas e mitigando ataques volumétricos. O cabeçalho de resposta CORS consome `ALLOWED_ORIGIN` injetado via variável de ambiente.
 
-### 3.2. Eixo 2: Frontend SPA e Experiência do Usuário (`QA-004`, `QA-008`, `QA-009`, `QA-011`, `QA-012`, `QA-013`, `QA-014`)
+### 3.2. Eixo 2: Frontend SPA e Experiência do Usuário (`QA-004`, `QA-008`, `QA-009`, `QA-011`, `QA-012`, `QA-013`, `QA-014`, `QA-016`)
 1. **Blindagem Anti-XSS via Whitelist Estrita (`QA-004`):** O frontend rejeita quaisquer tokens de severidade fora do conjunto `['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']`, normalizando para `'LOW'` e aplicando `escapeHtml(safeSev)`. Impossibilita injeções no DOM via atributos CSS ou tags embutidas.
-2. **Defesa em Profundidade com CSP (`QA-008`):** O `<head>` de `web/index.html` aplica diretiva CSP rígida (`default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.execute-api.us-east-2.amazonaws.com;`), bloqueando injeção remota e vazamento de dados.
+2. **Defesa em Profundidade com CSP (`QA-008`):** O `<head>` de `web/index.html` aplica diretiva CSP rígida (`default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.execute-api.us-east-2.amazonaws.com http://localhost:* http://127.0.0.1:*;`), bloqueando injeção remota e vazamento de dados.
 3. **Resiliência de Rede com Timeout Explícito (`QA-009`):** A função de auditoria cria uma instância de `AbortController` vinculada a um temporizador de 15 segundos. Se a API não responder dentro desse período, a requisição é cancelada e a interface restaura seus controles e spinner, alertando o usuário sobre o timeout.
 4. **Coerção de Tipo Universal em `escapeHtml` (`QA-011`):** A função converte qualquer argumento recebido para string (`String(str)`) e retorna string vazia para `null` ou `undefined`, impedindo exceções de runtime na renderização do DOM.
 5. **Acessibilidade e Descongelamento de UI Sem `alert()` (`QA-012`):** Todas as notificações visuais utilizam o banner `<div class="alert-banner" role="alert">`, garantindo feedback assíncrono e suporte para tecnologias assistivas.
 6. **Desserialização Segura com Checagem de Protocolo (`QA-013` & `QA-014`):** Respostas de proxies ou CDNs com erros 502/504 em HTML são tratadas via `response.text()` sem causar falhas de parse JSON. URLs manuais são validadas estritamente com `new URL()` para esquemas HTTP/HTTPS.
+7. **Resiliência de Ativos Tipográficos e Fontes Offline (`QA-016`):** O link de fontes externas do Google Fonts em `web/index.html` adota explicitamente `crossorigin="anonymous"`, enquanto `web/styles.css` define fontes de fallback robustas do sistema operacional (`-apple-system`, `BlinkMacSystemFont`, `Segoe UI`, `Roboto`, `sans-serif` e `monospace`) e erradica diretivas `@import` ou referências remotas `url()`, garantindo resiliência em ambientes sem conectividade externa.
 
 ---
 
@@ -83,24 +85,24 @@ A tabela abaixo estabelece o mapeamento estrito 1-para-1 entre o identificador d
 ### 4.1. Suíte Unitária do Backend e Regressão (`src`)
 ```bash
 $ python3 -m unittest discover -s src -v
-Ran 56 tests in 0.031s
+Ran 80 tests in 0.038s
 OK
 ```
-- **Total de Testes:** 56 testes executados
-- **Tempo de Execução:** 31 ms
-- **Taxa de Aprovação:** 100% (56/56)
+- **Total de Testes:** 80 testes executados (19 em `test_auditor.py`, 44 em `test_handler.py`, 17 em `test_hardening_regression.py`)
+- **Tempo de Execução:** 38 ms
+- **Taxa de Aprovação:** 100% (80/80)
 
 ### 4.2. Baterias de Estresse Local e Evasão Semântica (`qa`)
 ```bash
 $ python3 -m unittest qa/test_stress_local.py qa/test_evasion_bypass.py -v
-Ran 94 tests in 1.952s
+Ran 103 tests in 2.205s
 OK
 ```
-- **Total de Testes:** 94 testes executados (42 estresse + 52 evasão)
+- **Total de Testes:** 103 testes executados (48 estresse + 55 evasão)
 - **Bypasses Confirmados:** 0
 - **Falsos Positivos:** 0
 - **Estouro de Memória / Crashes:** 0
-- **Taxa de Aprovação:** 100% (94/94)
+- **Taxa de Aprovação:** 100% (103/103)
 
 ### 4.3. Auditoria Estática de Segurança do Frontend (`qa/audit_frontend.py`)
 ```bash
@@ -137,10 +139,10 @@ $ python3 qa/audit_frontend.py
 
 Com a conclusão satisfatória de todos os testes unitários, testes de regressão 1-para-1, baterias de estresse volumétrico, validação de evasão semântica e auditoria de frontend:
 
-1. **Aderência aos Requisitos:** Todos os 15 apontamentos `QA-001` a `QA-015` foram corrigidos e possuem testes dedicados automatizados na biblioteca padrão do Python.
+1. **Aderência aos Requisitos:** Todos os 16 apontamentos `QA-001` a `QA-016` foram corrigidos e possuem testes dedicados automatizados na biblioteca padrão do Python.
 2. **Resiliência e Performance:** O motor serverless opera com latências sub-segundo e proteção estrita de memória e limites de payload (512 KB e 500 statements).
 3. **Segurança de Aplicação:** Frontend blindado contra XSS com CSP restritiva e score máximo de 100/100.
-4. **Pronto para Integração:** A branch `fix/hardening-v1` está pronta para merge na branch principal (`main`).
+4. **Pronto para Integração:** A branch `fix/hardening-v1` está homologada e pronta para merge na branch principal (`main`).
 
 ---
 *Relatório de Hardening e Homologação gerado e aprovado pela Esteira de QA (Camada 5) — Branch `fix/hardening-v1`.*

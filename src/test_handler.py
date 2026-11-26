@@ -740,6 +740,69 @@ resource "aws_s3_bucket" "test_bucket" {
             self.assertIsInstance(finding["description"], str)
             self.assertIsInstance(finding["recommendation"], str)
 
+    def test_event_none_returns_400(self):
+        """Validates 400 when event is None."""
+        res = lambda_handler(None)
+        self.assertEqual(res["statusCode"], 400)
+        body = json.loads(res["body"])
+        self.assertIn("error", body)
+
+    def test_raw_bytes_event_handling(self):
+        """Validates that event passed as raw bytes is parsed and processed correctly."""
+        raw_bytes = json.dumps({"type": "iam", "content": self.compliant_iam_json}).encode("utf-8")
+        res = lambda_handler(raw_bytes)
+        self.assertEqual(res["statusCode"], 200)
+        body = json.loads(res["body"])
+        self.assertEqual(body["score"], 100)
+
+    def test_bytes_body_in_dict_event(self):
+        """Validates that bytes in event['body'] are decoded and processed."""
+        raw_bytes = json.dumps({"type": "iam", "content": self.compliant_iam_json}).encode("utf-8")
+        event = {"body": raw_bytes}
+        res = lambda_handler(event)
+        self.assertEqual(res["statusCode"], 200)
+
+    def test_base64_non_string_body_rejected(self):
+        """Validates 400 when isBase64Encoded is True but body is not a string."""
+        event = {"isBase64Encoded": True, "body": 12345}
+        res = lambda_handler(event)
+        self.assertEqual(res["statusCode"], 400)
+        body = json.loads(res["body"])
+        self.assertIn("error", body)
+
+    def test_base64_dict_body_rejected(self):
+        """Validates 400 when isBase64Encoded is True but body is a dictionary."""
+        event = {"isBase64Encoded": True, "body": {"type": "iam"}}
+        res = lambda_handler(event)
+        self.assertEqual(res["statusCode"], 400)
+        body = json.loads(res["body"])
+        self.assertIn("error", body)
+
+    def test_content_length_header_too_large(self):
+        """Validates 413 when Content-Length header exceeds MAX_PAYLOAD_BYTES."""
+        event = {
+            "headers": {"content-length": str(MAX_PAYLOAD_BYTES + 5000)},
+            "body": json.dumps({"type": "iam", "content": self.compliant_iam_json}),
+        }
+        res = lambda_handler(event)
+        self.assertEqual(res["statusCode"], 413)
+        body = json.loads(res["body"])
+        self.assertIn("512 KB", body["error"])
+
+    def test_dynamic_allowed_origin_header(self):
+        """Validates that ALLOWED_ORIGIN env var dynamically sets CORS origin."""
+        with patch.dict("os.environ", {"ALLOWED_ORIGIN": "https://auditor.onion.internal"}):
+            res = lambda_handler({"type": "iam", "content": self.compliant_iam_json})
+            self.assertEqual(res["headers"]["Access-Control-Allow-Origin"], "https://auditor.onion.internal")
+
+    def test_global_exception_boundary_catches_fatal_base_exception(self):
+        """Validates that even fatal non-Exception classes return 500 without crashing."""
+        with patch("src.handler._handle_event", side_effect=KeyboardInterrupt("Forced interrupt")):
+            res = lambda_handler({"type": "iam", "content": self.compliant_iam_json})
+            self.assertEqual(res["statusCode"], 500)
+            body = json.loads(res["body"])
+            self.assertIn("error", body)
+            self.assertNotIn("KeyboardInterrupt", body["error"])
 
 
 if __name__ == "__main__":

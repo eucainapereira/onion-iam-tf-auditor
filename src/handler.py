@@ -42,25 +42,58 @@ CONTROL_CHARS_PATTERN = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 def _response(status_code: int, body_data: Any) -> Dict[str, Any]:
     """
     Constructs an API Gateway HTTP API v2 response with standardized CORS headers.
+    Dynamically honors ALLOWED_ORIGIN environment variable if updated at runtime.
+    Guaranteed never to raise an unhandled exception during response construction.
     """
+    try:
+        current_origin = os.environ.get("ALLOWED_ORIGIN", ALLOWED_ORIGIN)
+        headers = dict(CORS_HEADERS)
+        headers["Access-Control-Allow-Origin"] = current_origin
+    except Exception:
+        headers = {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        }
+
+    try:
+        body = json.dumps(body_data, ensure_ascii=False)
+    except Exception:
+        body = '{"error": "Erro interno do servidor durante o processamento da requisição."}'
+
     return {
         "statusCode": status_code,
-        "headers": dict(CORS_HEADERS),
-        "body": json.dumps(body_data, ensure_ascii=False),
+        "headers": headers,
+        "body": body,
     }
 
 
 def _check_payload_size(data: Any) -> bool:
     """
-    Checks if data exceeds MAX_PAYLOAD_BYTES (512 KB).
+    Checks if data exceeds MAX_PAYLOAD_BYTES (default 512 KB).
     Returns True if exceeded, False otherwise.
     """
+    try:
+        limit = globals().get("MAX_PAYLOAD_BYTES", 512 * 1024)
+    except Exception:
+        limit = 512 * 1024
+
+    if data is None:
+        return False
     if isinstance(data, (bytes, bytearray)):
-        return len(data) > MAX_PAYLOAD_BYTES
+        return len(data) > limit
     if isinstance(data, str):
-        if len(data) > MAX_PAYLOAD_BYTES:
+        if len(data) > limit:
             return True
-        return len(data.encode("utf-8")) > MAX_PAYLOAD_BYTES
+        return len(data.encode("utf-8")) > limit
+    if isinstance(data, (dict, list)):
+        try:
+            if len(data) > 5000:
+                return True
+            return len(json.dumps(data).encode("utf-8")) > limit
+        except Exception:
+            return False
     return False
 
 
@@ -106,9 +139,25 @@ def lambda_handler(event: Any, context: Any = None) -> Dict[str, Any]:
     except Exception as global_exc:
         logger.error("Unhandled global exception in lambda_handler: %s", global_exc, exc_info=True)
         return _response(500, {"error": "Erro interno do servidor durante o processamento da requisição."})
+    except BaseException as base_exc:
+        logger.critical("Fatal unhandled base exception in lambda_handler: %s", base_exc, exc_info=True)
+        return _response(500, {"error": "Erro interno do servidor durante o processamento da requisição."})
 
 
 def _handle_event(event: Any, context: Any = None) -> Dict[str, Any]:
+    # 0. Early type and None check
+    if event is None:
+        return _response(400, {"error": "Evento de requisição inválido: o evento não pode ser nulo."})
+
+    # Handle raw bytes or bytearray event
+    if isinstance(event, (bytes, bytearray)):
+        if _check_payload_size(event):
+            return _response(413, {"error": "Corpo da requisição excede o limite máximo permitido de 512 KB."})
+        try:
+            event = event.decode("utf-8")
+        except UnicodeDecodeError as dec_err:
+            return _response(400, {"error": f"Erro de decodificação UTF-8 na requisição: {str(dec_err)}"})
+
     # 1. Handle OPTIONS (pre-flight)
     if isinstance(event, dict):
         method = ""
@@ -138,16 +187,38 @@ def _handle_event(event: Any, context: Any = None) -> Dict[str, Any]:
                 400,
                 {"error": "Limite de recursão excedido devido a aninhamento excessivo no JSON (RecursionError)."},
             )
+        except (json.JSONDecodeError, UnicodeDecodeError) as json_err:
+            return _response(400, {"error": f"JSON inválido no corpo da requisição: {str(json_err)}"})
         except Exception:
             return _response(400, {"error": "Corpo da requisição não é um JSON válido."})
 
     elif isinstance(event, dict):
+        # Check Content-Length header if present
+        headers = event.get("headers")
+        if isinstance(headers, dict):
+            cl_val = headers.get("content-length") or headers.get("Content-Length")
+            if cl_val is not None:
+                try:
+                    limit = globals().get("MAX_PAYLOAD_BYTES", 512 * 1024)
+                    if int(cl_val) > limit:
+                        return _response(413, {"error": "Corpo da requisição excede o limite máximo permitido de 512 KB."})
+                except (ValueError, TypeError):
+                    pass
+
         if "body" in event:
             raw_body = event["body"]
             if raw_body is None:
                 return _response(400, {"error": "O corpo da requisição não pode ser nulo."})
 
-            is_b64 = bool(event.get("isBase64Encoded", False))
+            is_b64 = bool(event.get("isBase64Encoded", False)) or str(event.get("isBase64Encoded", "")).lower() in ("true", "1")
+
+            if isinstance(raw_body, (bytes, bytearray)):
+                if _check_payload_size(raw_body):
+                    return _response(413, {"error": "Corpo da requisição excede o limite máximo permitido de 512 KB."})
+                try:
+                    raw_body = raw_body.decode("utf-8")
+                except UnicodeDecodeError as dec_err:
+                    return _response(400, {"error": f"Erro de decodificação UTF-8 no corpo da requisição: {str(dec_err)}"})
 
             if isinstance(raw_body, str):
                 if _check_payload_size(raw_body):
@@ -183,6 +254,8 @@ def _handle_event(event: Any, context: Any = None) -> Dict[str, Any]:
                     return _response(400, {"error": f"JSON inválido no corpo da requisição: {str(json_err)}"})
 
             elif isinstance(raw_body, dict):
+                if is_b64:
+                    return _response(400, {"error": "Payload Base64 inválido: o corpo da requisição deve ser uma string codificada em Base64."})
                 try:
                     _check_nesting_depth(raw_body)
                 except RecursionError:
@@ -263,6 +336,10 @@ def _handle_event(event: Any, context: Any = None) -> Dict[str, Any]:
                 400,
                 {"error": f"Limite de recursão excedido devido a aninhamento excessivo no JSON (RecursionError): {err_msg}"},
             )
+        # Defense-in-depth: do not leak internal system file paths
+        if any(prefix in err_msg for prefix in ("/var/", "/app/", "/root/", "Traceback")):
+            logger.error("Sanitized sensitive path leak in ValueError: %s", err_msg)
+            return _response(500, {"error": "Erro interno do servidor durante o processamento da requisição."})
         return _response(400, {"error": err_msg})
     except Exception as exc:
         logger.error("Audit execution error: %s", exc, exc_info=True)
