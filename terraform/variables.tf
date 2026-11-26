@@ -1,3 +1,8 @@
+# ==============================================================================
+# Onion Auditor — Variáveis de Entrada da Infraestrutura
+# Camada 3: Infraestrutura (Terraform) & CI/CD
+# ==============================================================================
+
 variable "aws_region" {
   description = "Região da AWS para provisionamento dos recursos"
   type        = string
@@ -5,7 +10,7 @@ variable "aws_region" {
 }
 
 variable "project_prefix" {
-  description = "Prefixo padrão único para todos os recursos na AWS"
+  description = "Prefixo padrão único para todos os recursos na AWS (onion-auditor-*)"
   type        = string
   default     = "onion-auditor"
 }

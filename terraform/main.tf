@@ -1,3 +1,8 @@
+# ==============================================================================
+# Onion Auditor — Configuração do Provedor AWS e Tags Globais
+# Camada 3: Infraestrutura (Terraform) & CI/CD
+# ==============================================================================
+
 provider "aws" {
   region = var.aws_region
 

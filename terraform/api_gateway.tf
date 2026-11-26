@@ -1,3 +1,8 @@
+# ==============================================================================
+# Onion Auditor — API Gateway HTTP API v2 (POST /audit & CORS)
+# Camada 3: Infraestrutura (Terraform) & CI/CD
+# ==============================================================================
+
 # API Gateway HTTP API (v2)
 resource "aws_apigatewayv2_api" "http_api" {
   name          = "${var.project_prefix}-api"

@@ -1,3 +1,8 @@
+# ==============================================================================
+# Onion Auditor — Saídas Oficiais e Contratuais da Infraestrutura
+# Camada 3: Infraestrutura (Terraform) & CI/CD
+# ==============================================================================
+
 output "api_url" {
   description = "URL base da HTTP API com o caminho /audit"
   value       = "${trimsuffix(aws_apigatewayv2_stage.default.invoke_url, "/")}/audit"

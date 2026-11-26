@@ -1,3 +1,9 @@
+# ==============================================================================
+# Onion Auditor — Pipeline CI/CD de Infraestrutura e Frontend
+# Camada 3: Infraestrutura (Terraform) & CI/CD
+# Gatilho manual (workflow_dispatch) para evitar disparo antes da configuração do IAM
+# ==============================================================================
+
 name: Deploy Onion Auditor
 
 on:

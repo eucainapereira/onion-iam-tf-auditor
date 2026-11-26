@@ -1,3 +1,8 @@
+# ==============================================================================
+# Onion Auditor — Frontend Estático S3 (Static Website Hosting)
+# Camada 3: Infraestrutura (Terraform) & CI/CD
+# ==============================================================================
+
 # S3 Bucket para hospedagem do Frontend Estático (SPA)
 resource "aws_s3_bucket" "frontend" {
   bucket        = "${var.project_prefix}-frontend-${local.account_id}-${var.aws_region}"

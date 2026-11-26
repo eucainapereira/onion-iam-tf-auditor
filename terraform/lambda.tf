@@ -1,3 +1,8 @@
+# ==============================================================================
+# Onion Auditor — AWS Lambda (Python 3.12 Engine) & CloudWatch Logs
+# Camada 3: Infraestrutura (Terraform) & CI/CD
+# ==============================================================================
+
 # Compactação do código-fonte da pasta ../src para deploy na Lambda
 data "archive_file" "lambda_zip" {
   type        = "zip"

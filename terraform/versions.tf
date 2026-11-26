@@ -1,3 +1,8 @@
+# ==============================================================================
+# Onion Auditor — Provedores e Versões Mínimas (Terraform & AWS)
+# Camada 3: Infraestrutura (Terraform) & CI/CD
+# ==============================================================================
+
 terraform {
   required_version = ">= 1.5.0"
 
