@@ -6,9 +6,18 @@
 [![FinOps Scale-to-Zero](https://img.shields.io/badge/FinOps-Scale--to--Zero-brightgreen)](https://www.finops.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+> [!TIP]
+> ### 🚀 Demo ao Vivo
+> Acesse a aplicação em execução provisionada na AWS:
+> 👉 **[Clique aqui para acessar o Onion Auditor ao Vivo](http://onion-auditor-frontend-654341980060-us-east-2.s3-website.us-east-2.amazonaws.com)**
+>
+> - **Frontend URL (S3 Static Website):** [http://onion-auditor-frontend-654341980060-us-east-2.s3-website.us-east-2.amazonaws.com](http://onion-auditor-frontend-654341980060-us-east-2.s3-website.us-east-2.amazonaws.com)
+> - **API URL (API Gateway v2 + Lambda):** `https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit`
+
 ---
 
 ## 📌 Sumário
+- [🚀 Demo ao Vivo](#-demo-ao-vivo)
 - [1. Visão Geral](#1-visão-geral)
 - [2. Pilares de Arquitetura & FinOps](#2-pilares-de-arquitetura--finops)
 - [3. Diagrama de Arquitetura](#3-diagrama-de-arquitetura)
