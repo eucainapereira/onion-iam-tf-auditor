@@ -355,17 +355,25 @@ resource "aws_db_instance" "unencrypted_rds" {
         try {
           data = await response.json();
         } catch (parseErr) {
-          throw new Error(`Falha ao decodificar resposta JSON do servidor: ${parseErr.message}`);
+          const err = new Error(`Falha ao decodificar resposta JSON do servidor: ${parseErr.message}`);
+          err.status = response.status;
+          throw err;
         }
       } else {
         const rawText = await response.text();
         const snippet = rawText ? rawText.slice(0, 150) : '';
-        throw new Error(`Resposta com formato inesperado (Content-Type: ${contentType || 'indefinido'}, HTTP ${response.status}): ${snippet}`);
+        const err = new Error(`Resposta com formato inesperado (Content-Type: ${contentType || 'indefinido'}, HTTP ${response.status}): ${snippet}`);
+        err.status = response.status;
+        throw err;
       }
 
       if (!response.ok) {
         const status = response.status;
-        const apiError = (data && data.error) ? data.error : `Erro HTTP ${status}`;
+        const apiError = (data && typeof data.error === 'string')
+          ? data.error
+          : (data && data.message)
+            ? String(data.message)
+            : `Erro HTTP ${status}`;
         const err = new Error(apiError);
         err.status = status;
         throw err;
@@ -383,6 +391,8 @@ resource "aws_db_instance" "unencrypted_rds" {
         showAlert('Limite de requisições por segundo excedido (HTTP 429 Too Many Requests). Aguarde alguns segundos antes de tentar novamente.', 'warning', 'Erro 429 — Rate Limit Excedido');
       } else if (err.status && err.status >= 500) {
         showAlert(`Falha interna no serviço (HTTP ${err.status}): ${err.message}`, 'error', `Erro ${err.status} — Falha no Servidor`);
+      } else if (err.status && err.status >= 400) {
+        showAlert(`Erro na requisição (HTTP ${err.status}): ${err.message}`, 'error', `Erro ${err.status} — Falha na Requisição`);
       } else {
         showAlert(`Falha de comunicação ou rede: ${err.message}`, 'error', 'Erro de Conexão');
       }
@@ -429,7 +439,9 @@ resource "aws_db_instance" "unencrypted_rds" {
     let mediums = 0;
     let lows = 0;
 
-    const safeFindingsList = Array.isArray(findings) ? findings : [];
+    const safeFindingsList = Array.isArray(findings)
+      ? findings.filter(f => f && typeof f === 'object')
+      : [];
 
     safeFindingsList.forEach(f => {
       const itemSev = String(f.severity || '').toUpperCase().trim();

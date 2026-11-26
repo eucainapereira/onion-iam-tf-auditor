@@ -1,6 +1,6 @@
 {
   "report_title": "Onion Auditor - Relatório de Sondas em Produção & Auditoria Frontend (Camada 4)",
-  "timestamp_utc": "2026-11-26T17:33:25.934125+00:00",
+  "timestamp_utc": "2026-11-26T18:39:25.547891+00:00",
   "environment": {
     "python_version": "3.11.2",
     "api_gateway_url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
@@ -187,14 +187,14 @@
         "category": "XSS & DOM Security",
         "title": "Limpeza Segura de Container DOM",
         "file": "web/app.js",
-        "description": "Linha 451: Uso de innerHTML estritamente para resetar container (''). Sem risco de injeção."
+        "description": "Linha 463: Uso de innerHTML estritamente para resetar container (''). Sem risco de injeção."
       },
       {
         "id": "CTRL-DOM-CLEAR",
         "category": "XSS & DOM Security",
         "title": "Limpeza Segura de Container DOM",
         "file": "web/app.js",
-        "description": "Linha 499: Uso de innerHTML estritamente para resetar container (''). Sem risco de injeção."
+        "description": "Linha 511: Uso de innerHTML estritamente para resetar container (''). Sem risco de injeção."
       },
       {
         "id": "CTRL-ESCAPE-TYPE-SAFE",
