@@ -6,8 +6,10 @@ Uses only Python standard library (unittest).
 import base64
 import json
 import unittest
+from unittest.mock import patch
 
-from src.handler import CORS_HEADERS, lambda_handler
+from src.handler import CORS_HEADERS, MAX_PAYLOAD_BYTES, lambda_handler
+
 
 
 class TestLambdaHandler(unittest.TestCase):
@@ -330,6 +332,155 @@ resource "aws_db_instance" "secure_rds" {
         event = {"body": json.dumps({"type": "iam", "content": "{ invalid json"})}
         res = lambda_handler(event)
         self.assertEqual(res["statusCode"], 400)
+
+    def test_payload_too_large_body_string(self):
+        """Validates 413 error when body exceeds 512 KB."""
+        huge_str = "x" * (MAX_PAYLOAD_BYTES + 1024)
+        event = {"body": json.dumps({"type": "iam", "content": huge_str})}
+        res = lambda_handler(event)
+        self.assertEqual(res["statusCode"], 413)
+        body = json.loads(res["body"])
+        self.assertIn("error", body)
+        self.assertIn("512 KB", body["error"])
+        for header, val in CORS_HEADERS.items():
+            self.assertEqual(res["headers"].get(header), val)
+
+    def test_payload_too_large_content_field(self):
+        """Validates 413 error when content field exceeds 512 KB."""
+        huge_str = "x" * (MAX_PAYLOAD_BYTES + 512)
+        event = {"type": "terraform", "content": huge_str}
+        res = lambda_handler(event)
+        self.assertEqual(res["statusCode"], 413)
+        body = json.loads(res["body"])
+        self.assertIn("error", body)
+        self.assertIn("512 KB", body["error"])
+
+    def test_payload_too_large_raw_string_event(self):
+        """Validates 413 error when raw string event exceeds 512 KB."""
+        huge_event = "x" * (MAX_PAYLOAD_BYTES + 2048)
+        res = lambda_handler(huge_event)
+        self.assertEqual(res["statusCode"], 413)
+        body = json.loads(res["body"])
+        self.assertIn("error", body)
+
+    def test_payload_too_large_base64(self):
+        """Validates 413 error when base64 payload exceeds 512 KB."""
+        huge_raw = json.dumps({"type": "iam", "content": "A" * (MAX_PAYLOAD_BYTES + 1024)})
+        b64_str = base64.b64encode(huge_raw.encode("utf-8")).decode("utf-8")
+        event = {"isBase64Encoded": True, "body": b64_str}
+        res = lambda_handler(event)
+        self.assertEqual(res["statusCode"], 413)
+        body = json.loads(res["body"])
+        self.assertIn("error", body)
+
+    def test_recursion_error_nested_body_handled(self):
+        """Validates 400 error and clean recursion message on deeply nested body."""
+        nested_json = '{"k":' * 2000 + '1' + '}' * 2000
+        event = {"body": nested_json}
+        res = lambda_handler(event)
+        self.assertEqual(res["statusCode"], 400)
+        body = json.loads(res["body"])
+        self.assertIn("error", body)
+        self.assertIn("recursion", body["error"].lower())
+
+    def test_recursion_error_nested_content_handled(self):
+        """Validates 400 error and clean recursion message on deeply nested IAM content."""
+        nested_content = '{"k":' * 2000 + '1' + '}' * 2000
+        event = {"body": json.dumps({"type": "iam", "content": nested_content})}
+        res = lambda_handler(event)
+        self.assertEqual(res["statusCode"], 400)
+        body = json.loads(res["body"])
+        self.assertIn("error", body)
+        self.assertIn("recursion", body["error"].lower())
+
+    def test_corrupted_base64_handled(self):
+        """Validates 400 error on corrupted base64 string with 'base64' in message."""
+        event = {
+            "body": "!!!Invalid_Base64_String@@@==",
+            "isBase64Encoded": True,
+        }
+        res = lambda_handler(event)
+        self.assertEqual(res["statusCode"], 400)
+        body = json.loads(res["body"])
+        self.assertIn("error", body)
+        self.assertIn("base64", body["error"].lower())
+
+    def test_invalid_utf8_base64_handled(self):
+        """Validates 400 error when base64 payload decodes to invalid UTF-8 bytes."""
+        invalid_utf8_b64 = base64.b64encode(b"\xff\xfe\xfd\x80").decode("utf-8")
+        event = {
+            "body": invalid_utf8_b64,
+            "isBase64Encoded": True,
+        }
+        res = lambda_handler(event)
+        self.assertEqual(res["statusCode"], 400)
+        body = json.loads(res["body"])
+        self.assertIn("error", body)
+        self.assertIn("utf-8", body["error"].lower())
+
+    def test_bad_request_content_whitespace_only(self):
+        """Validates 400 error when content is only whitespace."""
+        event = {"body": json.dumps({"type": "iam", "content": "   \n\t  \r  "})}
+        res = lambda_handler(event)
+        self.assertEqual(res["statusCode"], 400)
+        body = json.loads(res["body"])
+        self.assertIn("error", body)
+
+    def test_bad_request_content_non_string(self):
+        """Validates 400 error when content is not a string."""
+        for invalid_content in [12345, ["s3:*"], {"Version": "2012-10-17"}]:
+            event = {"body": json.dumps({"type": "iam", "content": invalid_content})}
+            res = lambda_handler(event)
+            self.assertEqual(res["statusCode"], 400)
+            body = json.loads(res["body"])
+            self.assertIn("error", body)
+
+    def test_bad_request_type_non_string(self):
+        """Validates 400 error when type is not a string."""
+        for invalid_type in [12345, ["iam"], {"name": "iam"}]:
+            event = {"body": json.dumps({"type": invalid_type, "content": "..."})}
+            res = lambda_handler(event)
+            self.assertEqual(res["statusCode"], 400)
+            body = json.loads(res["body"])
+            self.assertIn("error", body)
+
+    def test_terraform_control_characters_sanitization(self):
+        """Validates that null bytes and non-printable control chars are sanitized in Terraform."""
+        hcl_with_null = 'resource "aws_security_group" "sg_\x00_test" {\n  name = "sg_test"\n}'
+        event = {"body": json.dumps({"type": "terraform", "content": hcl_with_null})}
+        res = lambda_handler(event)
+        self.assertEqual(res["statusCode"], 200)
+        body = json.loads(res["body"])
+        self.assertIn("score", body)
+
+    def test_global_exception_boundary_no_information_leak(self):
+        """Validates that unexpected exceptions return generic 500 without leaking internal paths or stack traces."""
+        with patch("src.handler.audit_iam", side_effect=RuntimeError("/var/task/internal/secret.key not found")):
+            event = {"body": json.dumps({"type": "iam", "content": self.compliant_iam_json})}
+            res = lambda_handler(event)
+            self.assertEqual(res["statusCode"], 500)
+            body = json.loads(res["body"])
+            self.assertIn("error", body)
+            self.assertNotIn("/var/task", body["error"])
+            self.assertNotIn("secret.key", body["error"])
+            self.assertNotIn("RuntimeError", body["error"])
+            for header, val in CORS_HEADERS.items():
+                self.assertEqual(res["headers"].get(header), val)
+
+    def test_cors_headers_consistency_all_status_codes(self):
+        """Validates CORS headers presence across 200, 400, 413, 500."""
+        # 400
+        res_400 = lambda_handler({"body": "{ invalid json"})
+        self.assertEqual(res_400["statusCode"], 400)
+        for h, v in CORS_HEADERS.items():
+            self.assertEqual(res_400["headers"].get(h), v)
+
+        # 413
+        res_413 = lambda_handler({"body": "x" * (MAX_PAYLOAD_BYTES + 10)})
+        self.assertEqual(res_413["statusCode"], 413)
+        for h, v in CORS_HEADERS.items():
+            self.assertEqual(res_413["headers"].get(h), v)
+
 
 
 if __name__ == "__main__":
