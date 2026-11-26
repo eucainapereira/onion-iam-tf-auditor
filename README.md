@@ -4,6 +4,7 @@
 [![Python 3.12](https://img.shields.io/badge/Python-3.12%20Stdlib-blue?logo=python)](https://www.python.org/)
 [![Terraform >= 1.5](https://img.shields.io/badge/Terraform->=1.5-purple?logo=terraform)](https://www.terraform.io/)
 [![FinOps Scale-to-Zero](https://img.shields.io/badge/FinOps-Scale--to--Zero-brightgreen)](https://www.finops.org/)
+[![Release v1.0.0](https://img.shields.io/badge/Release-v1.0.0-green?logo=github)](RELEASE_NOTES_v1.0.0.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 > [!TIP]
@@ -30,6 +31,7 @@
   - [6.2. Contrato de Entrada (Request)](#62-contrato-de-entrada-request)
   - [6.3. Contrato de Saída (Response)](#63-contrato-de-saída-response)
   - [6.4. Catálogo de Regras de Auditoria](#64-catálogo-de-regras-de-auditoria)
+- [Segurança, Resiliência & Hardening (v1.0.0)](#segurança-resiliência--hardening-v100)
 - [7. Outputs Oficiais do Terraform](#7-outputs-oficiais-do-terraform)
 - [8. Guia de Operação: Deploy & Destroy](#8-guia-de-operação-deploy--destroy)
   - [8.1. Pré-requisitos](#81-pré-requisitos)
@@ -306,6 +308,38 @@ A resposta da API retorna status HTTP `200 OK` (ou `400 Bad Request` em caso de 
 | `TF-003` | `HIGH` | Ausência de Bloqueio Público no S3 | Ausência do recurso `aws_s3_bucket_public_access_block` para o bucket. |
 | `TF-004` | `MEDIUM` | Bucket S3 sem Criptografia em Repouso | Ausência de configuração `aws_s3_bucket_server_side_encryption_configuration`. |
 | `TF-005` | `LOW` | Ausência de Tags Padrão de Governança | Recursos sem especificação do bloco `tags` com `Environment` ou `Project`. |
+
+---
+
+## Segurança, Resiliência & Hardening (v1.0.0)
+
+A partir da versão **v1.0.0**, o **Onion Auditor** incorpora um conjunto rigoroso de proteções de AppSec, resiliência operacional e defesas anti-evasão validadas em produção:
+
+1. **Limite Estrito de Payload (512 KB):**
+   - O handler Lambda valida o tamanho do corpo da requisição antes de qualquer operação de parsing ou decodificação.
+   - Payloads com tamanho superior a 512 KB (`524.288 bytes`) são imediatamente rejeitados com status `HTTP 413 Payload Too Large`, impedindo ataques volumétricos e esgotamento de memória (*Out-Of-Memory*).
+
+2. **Proteção Anti-Recursão & Contenção de DoS:**
+   - Mecanismo defensivo que limita a profundidade de objetos JSON aninhados a no máximo 20 níveis (`MAX_JSON_DEPTH = 20`), eliminando vetores de estouro de pilha (*stack overflow*) no runtime Python 3.12.
+   - Imposição de teto de no máximo 500 statements por política IAM (`MAX_ALLOWED_STATEMENTS = 500`), retornando `HTTP 400 Bad Request` controlado e prevenindo travamentos de CPU.
+   - Tratamento centralizado de exceções que sanitiza qualquer resposta de erro, impedindo o vazamento de stack traces, caminhos internos do sistema operacional (`/var/task/`) ou detalhes do ambiente de execução.
+
+3. **Parser Anti-Evasão Semântica (IAM & Terraform HCL):**
+   - **Normalização Recursiva de Casing IAM:** Conversão transparente de chaves minúsculas ou mistas (`statement`, `action`, `resource`) para o padrão canônico PascalCase da AWS IAM, mitigando tentativas de bypass por casing.
+   - **Inversão Lógica com `NotResource`:** Detecção explícita de declarações com `Effect: Allow` associadas a `NotResource`, penalizando a concessão irrestrita de privilégios velados (`IAM-002`, `CRITICAL`).
+   - **Radicais Verbais e Wildcards Ocultos:** Captura de curingas `*` inseridos dentro de listas de ações (`["s3:GetObject", "*"]`) ou em radicais de verbos (`s3:Get*`, `ec2:Describe*`).
+   - **Intersecção de Faixas de Portas em Security Groups:** Algoritmo que inspeciona faixas amplas (ex: `from_port = 0, to_port = 65535`) abertas para `0.0.0.0/0`, identificando a exposição involuntária de portas administrativas críticas (SSH 22, RDP 3389, PostgreSQL 5432, MySQL 3306).
+   - **ACLs Semi-Públicas S3:** Identificação e penalização de ACLs corporativamente perigosas como `authenticated-read` além de `public-read`.
+   - **Supressão de Falsos Positivos:** Políticas contendo controles defensivos mandatados pela AWS (regras de bloqueio com `Effect: Deny`, restrição de TLS ou IP) são processadas sem penalidades espúrias, preservando o Score 100 (LOW).
+
+4. **Sanitização Anti-XSS & Defesa do Frontend SPA:**
+   - **Higienização Defensiva (`escapeHtml`):** Coerção estrita de tipos para evitar quebras por valores nulos/indefinidos e conversão de caracteres perigosos (`&`, `<`, `>`, `"`, `'`, `/`) em entidades HTML seguras.
+   - **Whitelist Rígida de Severidades:** Validação do campo `severity` contra a lista restrita `['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']`, impedindo injeção de classes CSS ou elementos maliciosos no DOM.
+   - **Content Security Policy (CSP):** Meta tag CSP no cabeçalho HTML bloqueando scripts inline arbitrários e restringindo conexões estritamente ao endpoint homologado do API Gateway.
+   - **Timeout Determinístico (`AbortController`):** Cancelamento automático de requisições travadas após 15 segundos (`15000 ms`), descongelando a interface e notificando o usuário sem chamadas bloqueantes a `alert()`.
+
+> [!NOTE]
+> Para o histórico completo de evolução, métricas de latência e relatórios detalhados de homologação, consulte o arquivo [RELEASE_NOTES_v1.0.0.md](RELEASE_NOTES_v1.0.0.md).
 
 ---
 
