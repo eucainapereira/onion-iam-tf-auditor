@@ -1,0 +1,208 @@
+{
+  "report_title": "Onion Auditor - Verificação de Release v1.0.0 em Produção & Pós-Hardening",
+  "release_version": "v1.0.0",
+  "timestamp_utc": "2026-11-26T10:34:02.621146+00:00",
+  "environment": {
+    "python_runtime": "3.11.2",
+    "platform": "linux",
+    "api_gateway_url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
+    "frontend_s3_url": "http://onion-auditor-frontend-654341980060-us-east-2.s3-website.us-east-2.amazonaws.com",
+    "working_directory": "/app/workspace/github/onion-iam-tf-auditor"
+  },
+  "summary": {
+    "total_tests": 9,
+    "passed_tests": 9,
+    "failed_tests": 0,
+    "success_rate_percent": 100.0,
+    "all_passed": true,
+    "total_http_requests": 9,
+    "max_http_requests_budget": 15,
+    "inter_request_delay_seconds": 1.0,
+    "information_leakage_detected": false
+  },
+  "verifications": [
+    {
+      "id": "V1-01-CORS-PREFLIGHT",
+      "name": "Preflight CORS OPTIONS /audit",
+      "method": "OPTIONS",
+      "url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
+      "status_code": 204,
+      "latency_ms": 59.52,
+      "cors_origin": "*",
+      "cors_methods": "OPTIONS,POST",
+      "cors_headers": "authorization,content-type",
+      "assertions": {
+        "http_status_valid": true,
+        "cors_origin_valid": true,
+        "cors_methods_valid": true,
+        "no_info_leakage": true
+      },
+      "passed": true,
+      "details": "Headers CORS e preflight conformes com RFC no API Gateway v2."
+    },
+    {
+      "id": "V1-02-VALID-IAM",
+      "name": "Auditoria IAM Válida (HTTP 200, Score 100)",
+      "method": "POST",
+      "url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
+      "status_code": 200,
+      "latency_ms": 90.58,
+      "score": 100,
+      "risk_level": "LOW",
+      "findings_count": 0,
+      "assertions": {
+        "http_status_200": true,
+        "json_parsed_ok": true,
+        "score_expected_100": true,
+        "risk_level_low": true,
+        "zero_findings_clean": true,
+        "no_info_leakage": true
+      },
+      "passed": true,
+      "details": "Política IAM legítima avaliada com Score 100 (LOW) e sem achados."
+    },
+    {
+      "id": "V1-03-VALID-TERRAFORM",
+      "name": "Auditoria Terraform HCL Válida (HTTP 200, Score 100)",
+      "method": "POST",
+      "url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
+      "status_code": 200,
+      "latency_ms": 58.54,
+      "score": 100,
+      "risk_level": "LOW",
+      "findings_count": 0,
+      "assertions": {
+        "http_status_200": true,
+        "json_parsed_ok": true,
+        "score_expected_100": true,
+        "risk_level_low": true,
+        "zero_findings_clean": true,
+        "no_info_leakage": true
+      },
+      "passed": true,
+      "details": "Código Terraform seguro avaliado com Score 100 (LOW) e sem achados."
+    },
+    {
+      "id": "V1-04-EVASION-IAM-WILDCARD-LIST",
+      "name": "Detecção de Evasão IAM: Wildcard em Lista ['s3:GetObject', '*']",
+      "method": "POST",
+      "url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
+      "status_code": 200,
+      "latency_ms": 59.76,
+      "score": 45,
+      "risk_level": "CRITICAL",
+      "detected_findings": [
+        "IAM-001",
+        "IAM-009",
+        "IAM-005"
+      ],
+      "iam_001_severity": "CRITICAL",
+      "assertions": {
+        "http_status_200": true,
+        "json_parsed_ok": true,
+        "iam_001_detected": true,
+        "severity_critical_or_high": true,
+        "overall_risk_elevated": true,
+        "no_info_leakage": true
+      },
+      "passed": true,
+      "details": "Evasão detectada com sucesso: IAM-001 disparado com severidade CRITICAL."
+    },
+    {
+      "id": "V1-05-EVASION-TF-SG-BROAD-RANGE",
+      "name": "Detecção de Evasão TF: SG 0.0.0.0/0 com Faixa 0-65535",
+      "method": "POST",
+      "url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
+      "status_code": 200,
+      "latency_ms": 61.86,
+      "score": 65,
+      "risk_level": "CRITICAL",
+      "detected_findings": [
+        "TF-001",
+        "TF-005"
+      ],
+      "tf_001_severity": "CRITICAL",
+      "assertions": {
+        "http_status_200": true,
+        "json_parsed_ok": true,
+        "tf_001_detected": true,
+        "severity_critical_or_high": true,
+        "overall_risk_elevated": true,
+        "no_info_leakage": true
+      },
+      "passed": true,
+      "details": "Evasão detectada com sucesso: TF-001 disparado com severidade CRITICAL."
+    },
+    {
+      "id": "V1-06-PAYLOAD-LIMIT-512KB",
+      "name": "Hardening de Limite de Payload: Rejeição com HTTP 413 (>512 KB)",
+      "method": "POST",
+      "url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
+      "payload_bytes": 614380,
+      "payload_kb": 599.98,
+      "status_code": 413,
+      "latency_ms": 113.69,
+      "response_snippet": "{\"error\": \"Corpo da requisição excede o limite máximo permitido de 512 KB.\"}",
+      "assertions": {
+        "http_status_413": true,
+        "clean_error_message": true,
+        "no_info_leakage": true
+      },
+      "passed": true,
+      "details": "Payload excessivo bloqueado com HTTP 413 e mensagem limpa."
+    },
+    {
+      "id": "V1-07-MALFORMED-JSON-400",
+      "name": "Tratamento de JSON Malformado: HTTP 400 sem Vazamentos",
+      "method": "POST",
+      "url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
+      "status_code": 400,
+      "latency_ms": 61.86,
+      "response_snippet": "{\"error\": \"JSON inválido no corpo da requisição: Unterminated string starting at: line 1 column 28 (char 27)\"}",
+      "leaks_detected": [],
+      "assertions": {
+        "http_status_400": true,
+        "error_controlled": true,
+        "no_info_leakage": true
+      },
+      "passed": true,
+      "details": "JSON malformado tratado de forma defensiva com HTTP 400 e zero vazamento."
+    },
+    {
+      "id": "V1-08-FRONTEND-AVAILABILITY",
+      "name": "Disponibilidade do Frontend S3 (GET frontend_url HTTP 200)",
+      "method": "GET",
+      "url": "http://onion-auditor-frontend-654341980060-us-east-2.s3-website.us-east-2.amazonaws.com",
+      "status_code": 200,
+      "latency_ms": 31.57,
+      "content_length": 9272,
+      "assertions": {
+        "http_status_200": true,
+        "html_structure_valid": true,
+        "app_scripts_referenced": true,
+        "no_info_leakage": true
+      },
+      "passed": true,
+      "details": "Frontend SPA no S3 disponível, íntegro e referenciando os assets corretos."
+    },
+    {
+      "id": "V1-09-FRONTEND-ANTI-XSS",
+      "name": "Validação Anti-XSS: Presença de escapeHtml no app.js em Produção",
+      "method": "GET",
+      "url": "http://onion-auditor-frontend-654341980060-us-east-2.s3-website.us-east-2.amazonaws.com/app.js",
+      "status_code": 200,
+      "latency_ms": 44.17,
+      "assertions": {
+        "http_status_200": true,
+        "escape_function_defined": true,
+        "ampersand_escaped": true,
+        "lt_gt_escaped": true,
+        "defensive_type_coercion": true,
+        "no_info_leakage": true
+      },
+      "passed": true,
+      "details": "Controle anti-XSS confirmado no asset publicado: escapeHtml ativo e robusto."
+    }
+  ],
+  "release_verdict": "RELEASE v1.0.0 COMPROVADA E APROVADA: Todos os controles de segurança, resiliência, anti-evasão e sanitização validados diretamente no ambiente produtivo da AWS."
+}
