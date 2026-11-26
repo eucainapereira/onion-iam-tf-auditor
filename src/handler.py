@@ -74,6 +74,26 @@ def _sanitize_content(content: str, audit_type: str) -> str:
     return content
 
 
+def _check_nesting_depth(obj: Any, max_depth: int = 800) -> None:
+    """
+    Validates nesting depth of parsed JSON structures to defend against
+    deeply nested JSON DoS / RecursionError across all Python runtime versions (including Python 3.12+).
+    """
+    stack = [(obj, 1)]
+    while stack:
+        curr, depth = stack.pop()
+        if depth > max_depth:
+            raise RecursionError(f"Profundidade de aninhamento excessiva ({depth} > {max_depth}).")
+        if isinstance(curr, dict):
+            for v in curr.values():
+                if isinstance(v, (dict, list)):
+                    stack.append((v, depth + 1))
+        elif isinstance(curr, list):
+            for item in curr:
+                if isinstance(item, (dict, list)):
+                    stack.append((item, depth + 1))
+
+
 def lambda_handler(event: Any, context: Any = None) -> Dict[str, Any]:
     """
     AWS Lambda entrypoint handling API Gateway HTTP API v2 and direct calls.
@@ -111,6 +131,7 @@ def _handle_event(event: Any, context: Any = None) -> Dict[str, Any]:
             return _response(413, {"error": "Corpo da requisição excede o limite máximo permitido de 512 KB."})
         try:
             payload = json.loads(event)
+            _check_nesting_depth(payload)
         except RecursionError:
             return _response(
                 400,
@@ -149,6 +170,7 @@ def _handle_event(event: Any, context: Any = None) -> Dict[str, Any]:
 
                 try:
                     payload = json.loads(raw_body)
+                    _check_nesting_depth(payload)
                 except RecursionError:
                     return _response(
                         400,
@@ -160,11 +182,25 @@ def _handle_event(event: Any, context: Any = None) -> Dict[str, Any]:
                     return _response(400, {"error": f"JSON inválido no corpo da requisição: {str(json_err)}"})
 
             elif isinstance(raw_body, dict):
+                try:
+                    _check_nesting_depth(raw_body)
+                except RecursionError:
+                    return _response(
+                        400,
+                        {"error": "Limite de recursão excedido devido a aninhamento excessivo no JSON (RecursionError)."},
+                    )
                 payload = raw_body
             else:
                 return _response(400, {"error": "Formato de payload inválido."})
 
         elif "type" in event and "content" in event:
+            try:
+                _check_nesting_depth(event)
+            except RecursionError:
+                return _response(
+                    400,
+                    {"error": "Limite de recursão excedido devido a aninhamento excessivo no JSON (RecursionError)."},
+                )
             payload = event
         else:
             return _response(400, {"error": "Campos 'type' e 'content' são obrigatórios."})
