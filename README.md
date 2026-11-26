@@ -7,13 +7,15 @@
 [![Release v1.0.0](https://img.shields.io/badge/Release-v1.0.0-green?logo=github)](RELEASE_NOTES_v1.0.0.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> [!TIP]
-> ### 🚀 Demo ao Vivo
-> Acesse a aplicação em execução provisionada na AWS:
-> 👉 **[Clique aqui para acessar o Onion Auditor ao Vivo](http://onion-auditor-frontend-654341980060-us-east-2.s3-website.us-east-2.amazonaws.com)**
->
-> - **Frontend URL (S3 Static Website):** [http://onion-auditor-frontend-654341980060-us-east-2.s3-website.us-east-2.amazonaws.com](http://onion-auditor-frontend-654341980060-us-east-2.s3-website.us-east-2.amazonaws.com)
-> - **API URL (API Gateway v2 + Lambda):** `https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit`
+> [!IMPORTANT]
+> ### 🌐 Demo ao Vivo — Aplicação Provisionada na AWS
+> 
+> A solução completa do **Onion Auditor** está implantada e operacional na AWS:
+> 
+> 🔗 **Aplicação Web (S3 Static Website):** [http://onion-auditor-frontend-654341980060-us-east-2.s3-website.us-east-2.amazonaws.com](http://onion-auditor-frontend-654341980060-us-east-2.s3-website.us-east-2.amazonaws.com)  
+> ⚡ **API Serverless (HTTP API v2 + Lambda):** [`https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit`](https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit)  
+> 
+> *Interface SPA 100% estática consumindo o motor de auditoria Serverless sob demanda com arquitetura FinOps (Scale-to-Zero).*
 
 [![Onion Auditor — Demonstração da Aplicação em Execução](docs/screenshot.png)](http://onion-auditor-frontend-654341980060-us-east-2.s3-website.us-east-2.amazonaws.com)
 
