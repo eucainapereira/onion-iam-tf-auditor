@@ -23,6 +23,7 @@
 - [🚀 Demo ao Vivo](#-demo-ao-vivo)
 - [1. Visão Geral](#1-visão-geral)
 - [2. Pilares de Arquitetura & FinOps](#2-pilares-de-arquitetura--finops)
+  - [2.1. Matriz de Custos FinOps (Scale-to-Zero)](#21-matriz-de-custos-finops-scale-to-zero)
 - [3. Diagrama de Arquitetura](#3-diagrama-de-arquitetura)
 - [4. Convenção de Nomenclatura AWS](#4-convenção-de-nomenclatura-aws)
 - [5. Estrutura Canônica de Diretórios e Arquivos](#5-estrutura-canônica-de-diretórios-e-arquivos)
@@ -31,14 +32,14 @@
   - [6.2. Contrato de Entrada (Request)](#62-contrato-de-entrada-request)
   - [6.3. Contrato de Saída (Response)](#63-contrato-de-saída-response)
   - [6.4. Catálogo de Regras de Auditoria](#64-catálogo-de-regras-de-auditoria)
-- [Segurança, Resiliência & Hardening (v1.0.0)](#segurança-resiliência--hardening-v100)
-- [7. Outputs Oficiais do Terraform](#7-outputs-oficiais-do-terraform)
-- [8. Guia de Operação: Deploy & Destroy](#8-guia-de-operação-deploy--destroy)
-  - [8.1. Pré-requisitos](#81-pré-requisitos)
-  - [8.2. Deploy Local Passo a Passo](#82-deploy-local-passo-a-passo)
-  - [8.3. Pipeline CI/CD (GitHub Actions)](#83-pipeline-cicd-github-actions)
-  - [8.4. Destroy & Desprovisionamento Completo (FinOps Clean)](#84-destroy--desprovisionamento-completo-finops-clean)
-- [9. Licença](#9-licença)
+- [7. Segurança, Resiliência & Hardening (v1.0.0)](#7-segurança-resiliência--hardening-v100)
+- [8. Outputs Oficiais do Terraform](#8-outputs-oficiais-do-terraform)
+- [9. Guia de Operação: Deploy & Destroy](#9-guia-de-operação-deploy--destroy)
+  - [9.1. Pré-requisitos](#91-pré-requisitos)
+  - [9.2. Deploy Local Passo a Passo](#92-deploy-local-passo-a-passo)
+  - [9.3. Pipeline CI/CD (GitHub Actions)](#93-pipeline-cicd-github-actions)
+  - [9.4. Destroy & Desprovisionamento Completo (FinOps Clean)](#94-destroy--desprovisionamento-completo-finops-clean)
+- [10. Licença](#10-licença)
 
 ---
 
@@ -77,6 +78,18 @@ A arquitetura do **Onion Auditor** foi desenhada estritamente sob os conceitos d
 
 4. **Observabilidade Otimizada (Amazon CloudWatch Logs):**
    - Grupo de logs com retenção estrita de 7 dias, eliminando custos desnecessários de armazenamento de longo prazo.
+
+### 2.1. Matriz de Custos FinOps (Scale-to-Zero)
+
+O design 100% Serverless garante que o ambiente não possua nenhum custo fixo ou instâncias ociosas ligadas (*idle cost zero*):
+
+| Componente AWS | Camada Gratuita (AWS Free Tier) | Custo em Ociosidade | Custo Estimado (10.000 req/mês) |
+| :--- | :--- | :--- | :--- |
+| **S3 Static Website** | 5 GB storage padrão, 20.000 requisições GET | **US$ 0.00** | < US$ 0.01 |
+| **API Gateway (HTTP API v2)** | 1.000.000 de requisições/mês | **US$ 0.00** | ~ US$ 0.01 |
+| **AWS Lambda (Python 3.12)** | 1.000.000 de execuções e 3.2M seg-ARM/mês (Always Free) | **US$ 0.00** | **US$ 0.00** (coberto pelo Free Tier) |
+| **CloudWatch Logs** | 5 GB ingestão gratuita, retenção de 7 dias | **US$ 0.00** | **US$ 0.00** (abaixo da cota mínima) |
+| **Total Estimado** | — | **US$ 0.00 / mês** | **< US$ 0.02 / mês** |
 
 ---
 
@@ -311,7 +324,7 @@ A resposta da API retorna status HTTP `200 OK` (ou `400 Bad Request` em caso de 
 
 ---
 
-## Segurança, Resiliência & Hardening (v1.0.0)
+## 7. Segurança, Resiliência & Hardening (v1.0.0)
 
 A partir da versão **v1.0.0**, o **Onion Auditor** incorpora um conjunto rigoroso de proteções de AppSec, resiliência operacional e defesas anti-evasão validadas em produção:
 
@@ -343,7 +356,7 @@ A partir da versão **v1.0.0**, o **Onion Auditor** incorpora um conjunto rigoro
 
 ---
 
-## 7. Outputs Oficiais do Terraform
+## 8. Outputs Oficiais do Terraform
 
 Para garantir a integração rígida e desacoplada entre a camada de infraestrutura e as camadas de automação, os seguintes **outputs** são obrigatórios e devem ser declarados exatamente com estes identificadores no arquivo `terraform/outputs.tf`:
 
@@ -355,16 +368,16 @@ Para garantir a integração rígida e desacoplada entre a camada de infraestrut
 
 ---
 
-## 8. Guia de Operação: Deploy & Destroy
+## 9. Guia de Operação: Deploy & Destroy
 
-### 8.1. Pré-requisitos
+### 9.1. Pré-requisitos
 - **AWS CLI v2** configurada com credenciais válidas (`aws sts get-caller-identity`).
 - **Terraform >= 1.5.0** instalado localmente.
 - **Python 3.12** instalado para execução dos testes unitários.
 
 ---
 
-### 8.2. Deploy Local Passo a Passo
+### 9.2. Deploy Local Passo a Passo
 
 Execute os comandos a partir da raiz do repositório:
 
@@ -411,7 +424,7 @@ Execute os comandos a partir da raiz do repositório:
 
 ---
 
-### 8.3. Pipeline CI/CD (GitHub Actions)
+### 9.3. Pipeline CI/CD (GitHub Actions)
 
 O arquivo `.github/workflows/deploy.yml` executa automaticamente as seguintes fases a cada push na branch `main`:
 1. **Lint & Test:** Execução dos testes unitários em Python 3.12 e validação dos arquivos Terraform (`terraform fmt -check`, `terraform validate`).
@@ -420,7 +433,7 @@ O arquivo `.github/workflows/deploy.yml` executa automaticamente as seguintes fa
 
 ---
 
-### 8.4. Destroy & Desprovisionamento Completo (FinOps Clean)
+### 9.4. Destroy & Desprovisionamento Completo (FinOps Clean)
 
 Para garantir custo zero imediato e remover todos os recursos criados na conta AWS:
 
@@ -437,6 +450,6 @@ terraform destroy -auto-approve
 
 ---
 
-## 9. Licença
+## 10. Licença
 
 Este projeto está distribuído sob os termos da licença **MIT**. Consulte o arquivo [LICENSE](LICENSE) para mais detalhes.
