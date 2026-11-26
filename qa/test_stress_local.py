@@ -30,6 +30,8 @@ if str(SRC_DIR) not in sys.path:
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+os.environ.setdefault("MAX_PAYLOAD_BYTES", str(15 * 1024 * 1024))
+
 import handler  # type: ignore
 
 # Registro global de métricas e cenários executados

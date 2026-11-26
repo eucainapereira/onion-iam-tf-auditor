@@ -408,12 +408,11 @@ class TestIAMEvasionBypass(EvasionTestBase):
             description="Uso de wildcards no radical da ação ('s3:Get*') sem usar a terminação literal ':*'",
             audit_type="iam",
             content=json.dumps(policy),
-            expected_outcome="Bypass de IAM-001 (limitação do parser de sufixo ':*')",
-            classification="BYPASS",
-            security_verdict="O motor verifica estritamente se act_clean.endswith(':*') ou act_clean == '*'. Wildcards como 's3:Get*' burlam a detecção de IAM-001.",
+            expected_outcome="Detectar IAM-001 (Ação Universal com Wildcard)",
+            classification="BLOCKED",
+            security_verdict="Motor detectou wildcard no radical da ação acionando IAM-001 com sucesso.",
         )
-        # O motor não detecta IAM-001 para wildcards verbais intermediários (Bypass documentado)
-        self.assertNotIn("IAM-001", findings)
+        self.assertIn("IAM-001", findings)
 
     # ----------------------------------------------------------------------
     # 3. Chaves em minúsculo ou misto (action, resource, etc.)
@@ -438,13 +437,13 @@ class TestIAMEvasionBypass(EvasionTestBase):
             description="Injeção de chaves normativas em minúsculo ('version', 'statement', 'action', 'resource')",
             audit_type="iam",
             content=json.dumps(policy),
-            expected_outcome="Bypass de IAM-001 e IAM-002 devido à sensibilidade a maiúsculas no dict.get()",
-            classification="BYPASS",
-            security_verdict="O motor busca especificamente 'Statement', 'Action' e 'Resource'. O uso de chaves em minúsculo contorna a extração dos statements, resultando em score 95 (Falso Negativo Crítico).",
+            expected_outcome="Detectar IAM-001 e IAM-002",
+            classification="BLOCKED",
+            security_verdict="Normalização recursiva de chaves tratou chaves em minúsculo e acionou IAM-001 e IAM-002 com sucesso.",
         )
-        self.assertNotIn("IAM-001", findings)
-        self.assertNotIn("IAM-002", findings)
-        self.assertEqual(body.get("risk_level"), "LOW")
+        self.assertIn("IAM-001", findings)
+        self.assertIn("IAM-002", findings)
+        self.assertEqual(body.get("risk_level"), "CRITICAL")
 
     def test_eva_iam_mixed_case_keys_bypass(self) -> None:
         """TC-EVA-IAM-09: Chaves mistas com maiúsculas/minúsculas não padronizadas ('ACTION', 'resource')."""
@@ -465,12 +464,12 @@ class TestIAMEvasionBypass(EvasionTestBase):
             description="Statement com 'ACTION' em maiúsculo e 'resource' em minúsculo dentro de Statement válido",
             audit_type="iam",
             content=json.dumps(policy),
-            expected_outcome="Bypass de IAM-001 e IAM-002",
-            classification="BYPASS",
-            security_verdict="A busca por 'Action' e 'Resource' é estrita. O motor ignora 'ACTION' e 'resource', deixando de emitir IAM-001 e IAM-002.",
+            expected_outcome="Detectar IAM-001 e IAM-002",
+            classification="BLOCKED",
+            security_verdict="Normalização recursiva tratou chaves mistas e acionou IAM-001 e IAM-002 com sucesso.",
         )
-        self.assertNotIn("IAM-001", findings)
-        self.assertNotIn("IAM-002", findings)
+        self.assertIn("IAM-001", findings)
+        self.assertIn("IAM-002", findings)
 
     # ----------------------------------------------------------------------
     # 4. Principal: {"AWS": "*"} e variações
@@ -635,11 +634,11 @@ class TestIAMEvasionBypass(EvasionTestBase):
             description="Concessão de acesso irrestrito a todos os recursos da conta exceto um ('NotResource')",
             audit_type="iam",
             content=json.dumps(policy),
-            expected_outcome="Bypass de IAM-002 (motor ignora NotResource na verificação de recursos universais)",
-            classification="BYPASS",
-            security_verdict="O motor só inspeciona a chave 'Resource'. A cláusula 'NotResource', equivalente a conceder acesso amplo a toda a conta exceto o recurso listado, não é avaliada por nenhuma regra (Falso Negativo Crítico).",
+            expected_outcome="Detectar IAM-002 (Uso Perigoso de NotResource com Permissão Allow)",
+            classification="BLOCKED",
+            security_verdict="Motor inspecionou NotResource com efeito Allow e disparou IAM-002 com sucesso.",
         )
-        self.assertNotIn("IAM-002", findings)
+        self.assertIn("IAM-002", findings)
 
     def test_eva_iam_notresource_with_wildcard_action(self) -> None:
         """TC-EVA-IAM-16: NotResource combinado com Action wildcard ('*')."""
@@ -661,12 +660,12 @@ class TestIAMEvasionBypass(EvasionTestBase):
             description="Ação universal '*' combinada com exclusão de recurso único via 'NotResource'",
             audit_type="iam",
             content=json.dumps(policy),
-            expected_outcome="Detectar IAM-001 mas omitir IAM-002",
+            expected_outcome="Detectar IAM-001 e IAM-002",
             classification="BLOCKED",
-            security_verdict="O motor intercepta o perigo através de IAM-001 devido ao Action '*', mas ainda deixa escapar a regra de recurso IAM-002.",
+            security_verdict="Motor detectou tanto a ação universal IAM-001 quanto o recurso universal via NotResource IAM-002.",
         )
         self.assertIn("IAM-001", findings)
-        self.assertNotIn("IAM-002", findings)
+        self.assertIn("IAM-002", findings)
 
     # ----------------------------------------------------------------------
     # 6. iam:PassRole com Condition vazia ({}) e validações
@@ -780,12 +779,11 @@ class TestIAMEvasionBypass(EvasionTestBase):
             description="iam:PassRole protegido apenas por aws:username em vez de iam:PassedToService",
             audit_type="iam",
             content=json.dumps(policy),
-            expected_outcome="Bypass de IAM-009 (verificação aceita qualquer stringequals no json da condition)",
-            classification="BYPASS",
-            security_verdict="A linha 229 de auditor.py valida se 'iam:passedtoservice' in cond_str or 'stringequals' in cond_str. Condições com 'StringEquals' em atributos não relacionados ao serviço burlam IAM-009.",
+            expected_outcome="Detectar IAM-009 (iam:PassRole sem Restrição de Condição)",
+            classification="BLOCKED",
+            security_verdict="Motor exigiu presença mandatória de iam:PassedToService e detectou IAM-009 com sucesso.",
         )
-        # Comprovando bypass: IAM-009 é omitido porque a chave "StringEquals" satisfaz a checagem frouxa
-        self.assertNotIn("IAM-009", findings)
+        self.assertIn("IAM-009", findings)
 
     # ----------------------------------------------------------------------
     # 7. Falsos positivos em statements legítimos com "Effect": "Deny"
@@ -819,12 +817,12 @@ class TestIAMEvasionBypass(EvasionTestBase):
             description="Regra de segurança padrão AWS que nega acesso caso não use HTTPS ('aws:SecureTransport': 'false')",
             audit_type="iam",
             content=json.dumps(policy),
-            expected_outcome="Falso positivo em IAM-008 (Wildcard Principal) apesar de Effect ser Deny",
-            classification="FALSE_POSITIVE",
-            security_verdict="O motor avalia IAM-008 antes da checagem 'if not is_allow: continue'. Em statements Deny defensivos, 'Principal: *' é boa prática, mas o auditor gera IAM-008 com severidade CRITICAL (Falso Positivo Notável).",
+            expected_outcome="Não disparar IAM-008 para regra defensiva Deny",
+            classification="ANTI_FALSE_POSITIVE",
+            security_verdict="Filtro de Effect: Deny suprimiu IAM-008 para regra defensiva de TLS com sucesso.",
         )
-        self.assertIn("IAM-008", findings)
-        self.assertEqual(body.get("risk_level"), "CRITICAL")
+        self.assertNotIn("IAM-008", findings)
+        self.assertEqual(body.get("risk_level"), "LOW")
 
     def test_eva_iam_deny_ip_restriction_false_positive(self) -> None:
         """TC-EVA-IAM-22: Bloqueio defensivo de IPs não autorizados com Effect: Deny."""
@@ -852,11 +850,11 @@ class TestIAMEvasionBypass(EvasionTestBase):
             description="Negação geral de qualquer requisição externa a faixa corporativa autorizada",
             audit_type="iam",
             content=json.dumps(policy),
-            expected_outcome="Falso positivo em IAM-008, enquanto IAM-001/IAM-002 são corretamente ignorados",
-            classification="FALSE_POSITIVE",
-            security_verdict="IAM-008 foi emitido incorretamente para política de proteção perimetral.",
+            expected_outcome="Não disparar IAM-008 para regra defensiva Deny",
+            classification="ANTI_FALSE_POSITIVE",
+            security_verdict="Filtro de Effect: Deny suprimiu IAM-008 para regra defensiva de IP com sucesso.",
         )
-        self.assertIn("IAM-008", findings)
+        self.assertNotIn("IAM-008", findings)
         self.assertNotIn("IAM-001", findings)
         self.assertNotIn("IAM-002", findings)
 
@@ -1410,11 +1408,11 @@ resource "aws_s3_bucket" "bucket_auth_read" {
             description="Concessão de leitura para qualquer entidade autenticada na AWS no mundo ('authenticated-read')",
             audit_type="terraform",
             content=hcl,
-            expected_outcome="Bypass de TF-002 (regex só verifica public-read e public-read-write)",
-            classification="BYPASS",
-            security_verdict="O regex 'public-(read|read-write)' omite a ACL 'authenticated-read' do AWS S3, que concede leitura pública a qualquer titular de conta AWS global (Falso Negativo Semântico).",
+            expected_outcome="Detectar TF-002 (Bucket S3 com ACL Pública)",
+            classification="BLOCKED",
+            security_verdict="Regex expandida capturou a ACL authenticated-read acionando TF-002 com sucesso.",
         )
-        self.assertNotIn("TF-002", findings)
+        self.assertIn("TF-002", findings)
 
     # ----------------------------------------------------------------------
     # 5. Recursos RDS/EBS/S3: atributo encrypted omitido vs encrypted = false
