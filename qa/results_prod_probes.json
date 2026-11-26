@@ -1,6 +1,6 @@
 {
   "report_title": "Onion Auditor - Relatório de Sondas em Produção & Auditoria Frontend (Camada 4)",
-  "timestamp_utc": "2026-11-26T09:58:21.178232+00:00",
+  "timestamp_utc": "2026-11-26T10:03:40.739761+00:00",
   "environment": {
     "python_version": "3.11.2",
     "api_gateway_url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
