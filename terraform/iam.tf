@@ -1,3 +1,8 @@
+# ==============================================================================
+# Onion Auditor — Políticas IAM e Role de Execução da Lambda
+# Camada 5: Segurança, Políticas IAM & Integração no Terraform
+# ==============================================================================
+
 # Role de execução IAM para a AWS Lambda do motor de auditoria
 resource "aws_iam_role" "lambda_role" {
   name        = "${var.project_prefix}-lambda-execution-role"

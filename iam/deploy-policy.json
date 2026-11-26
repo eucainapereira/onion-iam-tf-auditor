@@ -87,7 +87,6 @@
       "Action": [
         "logs:CreateLogGroup",
         "logs:DeleteLogGroup",
-        "logs:DescribeLogGroups",
         "logs:PutRetentionPolicy",
         "logs:DeleteRetentionPolicy",
         "logs:ListTagsForResource",
@@ -98,9 +97,23 @@
       ],
       "Resource": [
         "arn:aws:logs:*:*:log-group:/aws/lambda/onion-auditor-*",
-        "arn:aws:logs:*:*:log-group:/aws/lambda/onion-auditor-*:*",
+        "arn:aws:logs:*:*:log-group:/aws/lambda/onion-auditor-*:*"
+      ],
+      "Condition": {
+        "Bool": {
+          "aws:SecureTransport": "true"
+        }
+      }
+    },
+    {
+      "Sid": "DeployCloudWatchLogsDescribe",
+      "Effect": "Allow",
+      "Action": [
+        "logs:DescribeLogGroups"
+      ],
+      "Resource": [
         "arn:aws:logs:*:*:log-group:*",
-        "arn:aws:logs:*:*:log-group::log-stream:*"
+        "arn:aws:logs:*:*:log-group:/aws/lambda/onion-auditor-*"
       ],
       "Condition": {
         "Bool": {
