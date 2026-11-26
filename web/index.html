@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🧅 Onion Auditor — Auditor Visual de Políticas IAM & Terraform</title>
+  <meta name="description" content="Auditor visual serverless de políticas AWS IAM e código Terraform HCL com foco em DevSecOps e FinOps.">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="logo-icon">🧅</div>
+        <div>
+          <h1 class="brand-title">Onion Auditor</h1>
+          <p class="brand-subtitle">Auditor Visual de Políticas IAM & Infraestrutura Terraform</p>
+        </div>
+      </div>
+      <div class="header-meta">
+        <span class="badge badge-finops">⚡ Scale-to-Zero</span>
+        <span class="badge badge-serverless">☁️ AWS Serverless</span>
+        <div class="api-status" id="apiStatusIndicator" title="Status da Conexão com a API">
+          <span class="status-dot"></span>
+          <span class="status-text" id="apiStatusText">Verificando API...</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- API Config Banner (if window.API_URL is empty) -->
+    <div class="api-config-banner" id="apiConfigBanner" style="display: none;">
+      <div class="api-config-content">
+        <span class="api-config-icon">ℹ️</span>
+        <div class="api-config-fields">
+          <label for="apiUrlInput"><strong>URL do Endpoint HTTP API:</strong> (window.API_URL não detectado)</label>
+          <div class="api-input-group">
+            <input type="text" id="apiUrlInput" placeholder="https://xxxxxxxxxx.execute-api.us-east-2.amazonaws.com/audit">
+            <button class="btn btn-sm btn-secondary" id="btnSaveApiUrl">Salvar URL</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Grid: Left Editor & Right Results -->
+    <main class="main-layout">
+      <!-- Left Column: Input Editor -->
+      <section class="editor-section card">
+        <div class="section-header">
+          <div class="type-selector">
+            <button class="tab-btn active" id="tabIam" data-type="iam">
+              <span class="tab-icon">🛡️</span> IAM Policy (JSON)
+            </button>
+            <button class="tab-btn" id="tabTf" data-type="terraform">
+              <span class="tab-icon">🏗️</span> Terraform HCL
+            </button>
+          </div>
+          <div class="sample-actions">
+            <button class="btn btn-sm btn-sample" id="btnSampleIam" title="Carregar amostra com múltiplas falhas de IAM">
+              ⚠️ Carregar IAM Vulnerável
+            </button>
+            <button class="btn btn-sm btn-sample" id="btnSampleTf" title="Carregar amostra com múltiplas falhas de Terraform">
+              🚨 Carregar Terraform Vulnerável
+            </button>
+            <button class="btn btn-sm btn-ghost" id="btnClear" title="Limpar editor">
+              🗑️ Limpar
+            </button>
+          </div>
+        </div>
+
+        <div class="editor-wrapper">
+          <div class="editor-meta-bar">
+            <span class="editor-lang-indicator" id="editorLangIndicator">JSON (IAM)</span>
+            <span class="editor-stats" id="editorStats">0 caracteres | 0 linhas</span>
+          </div>
+          <textarea id="codeEditor" spellcheck="false" placeholder="Cole aqui sua política IAM em JSON ou manifesto Terraform HCL..."></textarea>
+        </div>
+
+        <div class="editor-footer">
+          <button class="btn btn-primary btn-block" id="btnAudit">
+            <span class="btn-icon">🔍</span>
+            <span id="btnAuditText">Executar Auditoria de Segurança</span>
+            <span class="spinner" id="auditSpinner" style="display: none;"></span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Right Column: Visual Findings & Score -->
+      <section class="results-section card" id="resultsSection">
+        <div class="results-header">
+          <h2 class="section-title">Diagnóstico de Segurança</h2>
+          <span class="results-badge" id="resultsStatusBadge">Aguardando Análise</span>
+        </div>
+
+        <!-- Initial Placeholder State -->
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon">🛡️</div>
+          <h3>Pronto para Auditar</h3>
+          <p>Selecione um template vulnerável acima ou cole seu código IAM/Terraform e clique em <strong>Executar Auditoria de Segurança</strong>.</p>
+        </div>
+
+        <!-- Results Dashboard (shown after audit) -->
+        <div class="audit-dashboard" id="auditDashboard" style="display: none;">
+          <!-- Score & Risk Summary Card -->
+          <div class="summary-cards-grid">
+            <div class="metric-card score-card">
+              <div class="score-circle-container">
+                <svg class="score-circle-svg" viewBox="0 0 120 120">
+                  <circle class="score-circle-bg" cx="60" cy="60" r="50"></circle>
+                  <circle class="score-circle-progress" id="scoreCircleProgress" cx="60" cy="60" r="50"></circle>
+                </svg>
+                <div class="score-circle-label">
+                  <span class="score-number" id="scoreDisplay">--</span>
+                  <span class="score-max">/ 100</span>
+                </div>
+              </div>
+              <div class="score-meta">
+                <span class="metric-title">Score de Segurança</span>
+                <span class="score-status-desc" id="scoreStatusDesc">Conformidade CIS AWS</span>
+              </div>
+            </div>
+
+            <div class="metric-card risk-card">
+              <span class="metric-title">Nível de Risco Consolidado</span>
+              <div class="risk-badge" id="riskBadge">--</div>
+              <p class="risk-description" id="riskDescription">Aguardando cálculo com base nos achados.</p>
+            </div>
+          </div>
+
+          <!-- Severity Breakdown Counter -->
+          <div class="severity-counters" id="severityCounters">
+            <div class="severity-pill pill-critical">
+              <span class="pill-dot"></span>
+              <span class="pill-label">Crítico:</span>
+              <span class="pill-count" id="countCritical">0</span>
+            </div>
+            <div class="severity-pill pill-high">
+              <span class="pill-dot"></span>
+              <span class="pill-label">Alto:</span>
+              <span class="pill-count" id="countHigh">0</span>
+            </div>
+            <div class="severity-pill pill-medium">
+              <span class="pill-dot"></span>
+              <span class="pill-label">Médio:</span>
+              <span class="pill-count" id="countMedium">0</span>
+            </div>
+            <div class="severity-pill pill-low">
+              <span class="pill-dot"></span>
+              <span class="pill-label">Baixo:</span>
+              <span class="pill-count" id="countLow">0</span>
+            </div>
+          </div>
+
+          <!-- Perfect Score Banner (if no findings) -->
+          <div class="perfect-banner" id="perfectBanner" style="display: none;">
+            <div class="perfect-icon">🎉</div>
+            <div class="perfect-text">
+              <h4>Excelente! Nenhuma Vulnerabilidade Detectada</h4>
+              <p>O código analisado atende integralmente às diretrizes de menor privilégio e boas práticas de DevSecOps.</p>
+            </div>
+          </div>
+
+          <!-- Findings List -->
+          <div class="findings-container">
+            <h3 class="findings-title">Achados de Segurança (<span id="findingsCount">0</span>)</h3>
+            <div class="findings-list" id="findingsList">
+              <!-- Dynamically populated cards -->
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div class="footer-content">
+        <p><strong>Onion Auditor</strong> — Desenvolvido com foco em DevSecOps e FinOps (Scale-to-Zero).</p>
+        <p class="footer-sub">AWS Lambda (Python 3.12) • API Gateway v2 • Amazon S3 Static Hosting</p>
+      </div>
+    </footer>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
