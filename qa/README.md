@@ -1,347 +1,366 @@
 # 🧅 Onion Auditor — Plano Estratégico de Testes QA, Estresse, Evasão e Borda
 
-[![QA & AppSec Engineering](https://img.shields.io/badge/QA%20%26%20AppSec-Security%20Testing-red)](qa/README.md)
+[![QA & AppSec Engineering](https://img.shields.io/badge/QA%20%26%20AppSec-Security%20Testing-red)](README.md)
 [![Branch: qa/stress-audit](https://img.shields.io/badge/Branch-qa%2Fstress--audit-blueviolet)](https://github.com/eucainapereira/onion-iam-tf-auditor/tree/qa/stress-audit)
-[![Coverage Target: 100%](https://img.shields.io/badge/Coverage%20Target-Resilience%20%26%20Evasion-brightgreen)](qa/README.md)
+[![Python 3.12](https://img.shields.io/badge/Python-3.12%20Stdlib-blue?logo=python)](https://www.python.org/)
+[![Target: Zero Vulnerabilities](https://img.shields.io/badge/Target-Zero%20Vulnerabilities-brightgreen)](README.md)
 
 ---
 
 ## 📌 Sumário
-- [1. Visão Geral e Objetivos do Plano de QA](#1-visão-geral-e-objetivos-do-plano-de-qa)
+- [1. Visão Geral e Objetivos do Plano de QA & AppSec](#1-visão-geral-e-objetivos-do-plano-de-qa--appsec)
 - [2. Mapeamento da Superfície de Ataque e Infraestrutura](#2-mapeamento-da-superfície-de-ataque-e-infraestrutura)
-  - [2.1. Endpoints Públicos de Produção](#21-endpoints-públicos-de-produção)
-  - [2.2. Contrato de API (HTTP API v2 + Lambda)](#22-contrato-de-api-http-api-v2--lambda)
-  - [2.3. Matriz de Severidade e Cálculo de Risco](#23-matriz-de-severidade-e-cálculo-de-risco)
-  - [2.4. Catálogo Canônico de Regras de Auditoria](#24-catálogo-canônico-de-regras-de-auditoria)
-- [3. Plano de Testes de Estresse & Resiliência (Stress & Load Testing)](#3-plano-de-testes-de-estresse--resiliência-stress--load-testing)
-  - [3.1. Limites de Payload e Volumetria de Dados](#31-limites-de-payload-e-volumetria-de-dados)
-  - [3.2. Carga Sintética de Statements e Recursos](#32-carga-sintética-de-statements-e-recursos)
-  - [3.3. Avaliação de ReDoS (Regex Denial of Service)](#33-avaliação-de-redos-regex-denial-of-service)
-  - [3.4. Limites Operacionais de Memória e Timeout (FinOps Scale-to-Zero)](#34-limites-operacionais-de-memória-e-timeout-finops-scale-to-zero)
+  - [2.1. Endpoints Públicos de Produção (AWS)](#21-endpoints-públicos-de-produção-aws)
+  - [2.2. Contrato de API (HTTP API v2 + AWS Lambda)](#22-contrato-de-api-http-api-v2--aws-lambda)
+  - [2.3. Matriz de Severidade e Cálculo de Score](#23-matriz-de-severidade-e-cálculo-de-score)
+  - [2.4. Catálogo Canônico de Regras de Auditoria (IAM & Terraform)](#24-catálogo-canônico-de-regras-de-auditoria-iam--terraform)
+- [3. Plano de Testes de Estresse & Resiliência Operacional (Stress & Load Testing)](#3-plano-de-testes-de-estresse--resiliência-operacional-stress--load-testing)
+  - [3.1. Volumetria de Dados e Limites de Payload (512 KB)](#31-volumetria-de-dados-e-limites-de-payload-512-kb)
+  - [3.2. Carga Sintética de Statements e Recursos (DoS Prevention)](#32-carga-sintética-de-statements-e-recursos-dos-prevention)
+  - [3.3. Profundidade de Aninhamento JSON (Anti-Recursion DoS)](#33-profundidade-de-aninhamento-json-anti-recursion-dos)
+  - [3.4. Avaliação de ReDoS (Regex Denial of Service)](#34-avaliação-de-redos-regex-denial-of-service)
+  - [3.5. Limites Operacionais de Memória e Timeout (FinOps Scale-to-Zero)](#35-limites-operacionais-de-memória-e-timeout-finops-scale-to-zero)
 - [4. Plano de Testes de Evasão & Bypasses de Análise Estática](#4-plano-de-testes-de-evasão--bypasses-de-análise-estática)
-  - [4.1. Evasão em Regras IAM (Case Sensitivity, Arrays e Lógica de Efeito)](#41-evasão-em-regras-iam-case-sensitivity-arrays-e-lógica-de-efeito)
-  - [4.2. Evasão em Regras Terraform HCL (Regex vs Sintaxe Real)](#42-evasão-em-regras-terraform-hcl-regex-vs-sintaxe-real)
-  - [4.3. Bypasses de Portas, Notação CIDR e IPv6](#43-bypasses-de-portas-notação-cidr-e-ipv6)
+  - [4.1. Evasões Semânticas em Políticas IAM](#41-evasões-semânticas-em-políticas-iam)
+  - [4.2. Evasões em Regras Terraform HCL (Regex vs Sintaxe Real)](#42-evasões-em-regras-terraform-hcl-regex-vs-sintaxe-real)
+  - [4.3. Bypasses de Portas, Faixas Contíguas e Notação CIDR/IPv6](#43-bypasses-de-portas-faixas-contíguas-e-notação-cidripv6)
+  - [4.4. Mitigação e Supressão de Falsos Positivos](#44-mitigação-e-supressão-de-falsos-positivos)
 - [5. Sondas de Borda da API & Protocolo (Edge Probing)](#5-sondas-de-borda-da-api--protocolo-edge-probing)
   - [5.1. Fuzzing de Métodos HTTP e Cabeçalhos](#51-fuzzing-de-métodos-http-e-cabeçalhos)
   - [5.2. Manipulação de Base64 e Codificação de Caracteres](#52-manipulação-de-base64-e-codificação-de-caracteres)
   - [5.3. Validação de Políticas de CORS e Preflight](#53-validação-de-políticas-de-cors-e-preflight)
+  - [5.4. Sanitização Anti-XSS e Content Security Policy (CSP) do Frontend](#54-sanitização-anti-xss-e-content-security-policy-csp-do-frontend)
 - [6. Matriz de Cenários de Teste Executáveis](#6-matriz-de-cenários-de-teste-executáveis)
-- [7. Cronograma e Automação de Execução](#7-cronograma-e-automação-de-execução)
+- [7. Diretrizes de Execução e Automação](#7-diretrizes-de-execução-e-automação)
 
 ---
 
-## 1. Visão Geral e Objetivos do Plano de QA
+## 1. Visão Geral e Objetivos do Plano de QA & AppSec
 
-O presente documento estabelece o plano formal de **Garantia de Qualidade (QA)** e **Segurança de Aplicações (AppSec)** para o projeto **Onion Auditor**.
+O presente documento formaliza a estratégia e o plano executivo de **Garantia de Qualidade (QA)** e **Segurança de Aplicações (AppSec)** para o projeto **Onion Auditor**.
 
-O objetivo primário deste plano é submeter a arquitetura Serverless (API Gateway v2 + AWS Lambda Python 3.12 + S3 Frontend) e o motor de análise estática (`src/auditor.py` e `src/handler.py`) a testes rigorosos em quatro frentes principais:
-1. **Conformidade Contratual:** Assegurar que todas as entradas e saídas cumpram milimetricamente os contratos da API e os tipos de dados definidos.
-2. **Resiliência e Estresse:** Determinar os limites de ruptura do motor estático contra payloads volumosos, estouro de memória e saturação de tempo de execução.
-3. **Resistência à Evasão:** Identificar vetores onde regras de segurança IAM ou Terraform HCL possam ser contornadas por formatações não-canônicas, ofuscação, variações de case ou manipulações estruturais.
-4. **Defesa em Borda:** Validar a resposta do API Gateway e do handler Lambda contra tráfego malicioso, métodos HTTP não permitidos e cabeçalhos forjados.
+### Objetivos Primários:
+1. **Conformidade Estrita com o Contrato Arquitetural:** Garantir que o endpoint Serverless (`POST /audit`), o motor de auditoria (`src/auditor.py`, `src/handler.py`) e a SPA estática (`web/`) operem em perfeita sintonia com as especificações da arquitetura.
+2. **Resiliência Extrema contra DoS & Estresse:** Submeter a função AWS Lambda (Python 3.12, 128 MB, timeout 10s) a cargas anômalas, payloads gigantescos e estruturas altamente aninhadas, prevenindo *Out-Of-Memory* (OOM), saturação de tempo de execução e travamentos de CPU.
+3. **Imunidade contra Evasões Semânticas:** Mapear e testar vetores avançados de bypass de regras IAM e Terraform HCL (case variations, inversões lógicas com `NotAction`/`NotResource`, ofuscação de portas e manipulação de CIDRs).
+4. **Proteção da Superfície de Borda e Defesa em Profundidade:** Validar a blindagem contra chamadas maliciosas de protocolo, injeção de parâmetros, corrupção de Base64, brechas de CORS e vetores de Cross-Site Scripting (XSS) no frontend.
 
 > [!IMPORTANT]
-> **Isolamento de Branch:** Todas as atividades, automações e scripts de teste de estresse são mantidos estritamente na branch isolada `qa/stress-audit`. Nunca deve ser feito push de testes na branch `main` ou disparado o workflow `.github/workflows/deploy.yml`.
+> **Regra Crítica de Isolamento:** Todas as atividades, experimentos, scripts de teste de carga e sondas de borda são mantidos **estritamente na branch isolada `qa/stress-audit`**. É expressamente proibido fazer alterações ou commits diretos na branch `main` ou acionar pipelines produtivos (`.github/workflows/deploy.yml`).
 
 ---
 
 ## 2. Mapeamento da Superfície de Ataque e Infraestrutura
 
-### 2.1. Endpoints Públicos de Produção
+### 2.1. Endpoints Públicos de Produção (AWS)
 
-Com base no manifesto Terraform (`terraform/outputs.tf`) e na documentação arquitetural (`README.md`), os ativos públicos em ambiente de produção estão mapeados:
+Com base nas saídas oficiais declaradas em `terraform/outputs.tf` e na documentação arquitetural em `README.md`, os seguintes ativos públicos encontram-se mapeados e operacionais na AWS:
 
-| Ativo | Tipo de Recurso | URL Pública Mapeada |
-| :--- | :--- | :--- |
-| **API Backend** | AWS API Gateway HTTP API (v2) | `https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit` |
-| **Frontend SPA** | AWS S3 Static Website Hosting | `http://onion-auditor-frontend-654341980060-us-east-2.s3-website.us-east-2.amazonaws.com` |
-| **Storage S3** | S3 Bucket Físico | `onion-auditor-frontend-654341980060-us-east-2` |
-| **Telemetria** | Amazon CloudWatch Logs | `/aws/lambda/onion-auditor-engine` (Retenção: 7 dias) |
+| Ativo | Tipo de Recurso AWS | URL Pública / Identificador | Observações de Segurança |
+| :--- | :--- | :--- | :--- |
+| **API Backend** | AWS API Gateway HTTP API (v2) | `https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit` | Rota única `POST /audit`, CORS ativo, Throttling defensivo |
+| **Frontend SPA** | AWS S3 Static Website Hosting | `http://onion-auditor-frontend-654341980060-us-east-2.s3-website.us-east-2.amazonaws.com` | Hospedagem estática pura, CSP ativo, sem frameworks |
+| **Bucket S3** | Amazon S3 Storage | `onion-auditor-frontend-654341980060-us-east-2` | PublicRead apenas para assets estáticos, BucketOwnerEnforced |
+| **Motor Lambda**| AWS Lambda (Python 3.12) | `onion-auditor-engine` | 128 MB RAM, 10s timeout, Graviton2/x86_64, zero dependências |
+| **Telemetria** | Amazon CloudWatch Logs | `/aws/lambda/onion-auditor-engine` | Retenção de 7 dias, logging estruturado sem vazamento de traces |
 
 ---
 
-### 2.2. Contrato de API (HTTP API v2 + Lambda)
+### 2.2. Contrato de API (HTTP API v2 + AWS Lambda)
 
-#### Requisição: `POST /audit`
-- **Cabeçalhos Exigidos:**
+#### 2.2.1. Rota Principal: `POST /audit`
+- **Método HTTP:** `POST`
+- **Cabeçalhos Requeridos:**
   - `Content-Type: application/json`
-- **CORS Habilitado:**
-  - `Access-Control-Allow-Origin: *`
+- **CORS:**
+  - `Access-Control-Allow-Origin: *` (ou configurado via variável `ALLOWED_ORIGIN`)
   - `Access-Control-Allow-Methods: POST, OPTIONS`
-  - `Access-Control-Allow-Headers: Content-Type, Authorization` (ou `content-type, authorization`)
+  - `Access-Control-Allow-Headers: Content-Type, Authorization`
+  - `Access-Control-Max-Age: 300`
 
-#### Esquema de Entrada (JSON Request Body):
+#### 2.2.2. Contrato de Entrada (Request JSON):
 ```json
 {
   "type": "iam" | "terraform",
-  "content": "<string não vazia>"
+  "content": "<string não vazia contendo política IAM ou código HCL>"
 }
 ```
 
-#### Esquema de Saída com Sucesso (HTTP 200 OK):
+*Critérios de Validação:*
+- `type`: obrigatório, string estrita (`"iam"` ou `"terraform"`, insensível a maiúsculas/espaços nas pontas).
+- `content`: obrigatório, string não nula e não vazia (após strip).
+- `tamanho máximo`: `512 KB` (524.288 bytes). Payloads maiores são rejeitados imediatamente com HTTP 413.
+
+#### 2.2.3. Contrato de Saída de Sucesso (HTTP 200 OK):
 ```json
 {
-  "score": 0,
-  "risk_level": "CRITICAL" | "HIGH" | "MEDIUM" | "LOW",
+  "score": 40,
+  "risk_level": "CRITICAL",
   "findings": [
     {
       "id": "IAM-001",
       "title": "Ação Universal com Wildcard",
       "severity": "CRITICAL",
-      "description": "...",
-      "recommendation": "..."
+      "description": "O statement permite a ação wildcard (*), concedendo controle irrestrito a serviços AWS.",
+      "recommendation": "Restrinja o campo Action estritamente para as operações necessárias (ex: s3:GetObject, ec2:DescribeInstances)."
     }
   ]
 }
 ```
 
-#### Esquema de Erro de Validação (HTTP 400 Bad Request):
-```json
-{
-  "error": "<descrição prescritiva do erro de validação>"
-}
-```
-
-#### Esquema de Erro Interno (HTTP 500 Internal Server Error):
-```json
-{
-  "error": "Erro interno durante a execução da auditoria: <detalhes>"
-}
-```
+#### 2.2.4. Respostas de Erro Padronizadas:
+- **HTTP 400 Bad Request:**
+  ```json
+  { "error": "<mensagem prescritiva de validação>" }
+  ```
+  *(Ocorre em: JSON inválido, campos ausentes, tipos incorretos, recursão excessiva > 20/800 níveis, mais de 500 statements em IAM, ou Base64 inválido).*
+- **HTTP 413 Payload Too Large:**
+  ```json
+  { "error": "Corpo da requisição excede o limite máximo permitido de 512 KB." }
+  ```
+- **HTTP 500 Internal Server Error:**
+  ```json
+  { "error": "Erro interno do servidor durante o processamento da requisição." }
+  ```
+  *(Resposta defensiva opaca; jamais deve expor stack trace, caminhos `/var/task/` ou versões de pacotes).*
 
 ---
 
-### 2.3. Matriz de Severidade e Cálculo de Risco
+### 2.3. Matriz de Severidade e Cálculo de Score
 
-O motor calcula o score a partir de **100**, deduzindo pontos por severidade e aplicando piso em **0**:
+O score de segurança é calculado dinamicamente pelo motor (`calculate_score_and_risk`), partindo de **100 pontos** com penalidades cumulativas por achado:
 
-| Severidade | Dedução por Achado | Impacto no Score |
+| Severidade | Dedução por Ocorrência | Impacto e Regra de Enquadramento |
 | :--- | :---: | :--- |
-| `CRITICAL` | **-30** pontos | Força `risk_level = CRITICAL` independentemente do score final. |
-| `HIGH` | **-15** pontos | Reduz o score gradualmente. |
-| `MEDIUM` | **-10** pontos | Risco moderado. |
-| `LOW` | **-5** pontos | Baixo risco / boas práticas. |
+| **`CRITICAL`** | **-30** pontos | Força `risk_level = CRITICAL` mesmo que o score resultante seja $\ge 40$. |
+| **`HIGH`** | **-15** pontos | Redução severa da pontuação. |
+| **`MEDIUM`** | **-10** pontos | Redução moderada de boas práticas. |
+| **`LOW`** | **-5** pontos | Desvio menor de conformidade/governança. |
 
-**Regras de Enquadramento do `risk_level`:**
-- `CRITICAL`: `Score < 40` OU presença de $\ge 1$ achado `CRITICAL`.
-- `HIGH`: $40 \le \text{Score} < 70$.
-- `MEDIUM`: $70 \le \text{Score} < 90$.
-- `LOW`: $90 \le \text{Score} \le 100$.
+**Regras Normativas de Nível de Risco (`risk_level`):**
+- **`CRITICAL`:** `score < 40` OU presença de **pelo menos 1 achado de severidade `CRITICAL`**.
+- **`HIGH`:** `40 <= score < 70` (sem achados CRITICAL).
+- **`MEDIUM`:** `70 <= score < 90`.
+- **`LOW`:** `90 <= score <= 100`.
 
 ---
 
-### 2.4. Catálogo Canônico de Regras de Auditoria
+### 2.4. Catálogo Canônico de Regras de Auditoria (IAM & Terraform)
 
-#### Regras para Políticas IAM (`type: "iam"`):
-| ID | Severidade | Título | Condição de Detecção Implementada |
+#### 2.4.1. Regras para Políticas IAM (`type: "iam"`):
+
+| Código | Severidade | Título | Gatilho Técnico de Detecção |
 | :--- | :---: | :--- | :--- |
-| `IAM-001` | `CRITICAL` | Ação Universal com Wildcard | Statement com `Effect: Allow` contendo `Action = "*"` ou terminando com `:*` (ex: `s3:*`). |
-| `IAM-002` | `CRITICAL` | Recurso Universal com Wildcard | Statement com `Effect: Allow` contendo `Resource = "*"`. |
-| `IAM-003` | `HIGH` | Permissão Administrativa Potencial | Statement com `Effect: Allow` com ações IAM sensíveis (`iam:*`, `iam:attach*`, `iam:put*`, `iam:create*`, `iam:update*`, `iam:delete*`, `iam:passrole`) sem wildcards globais. |
-| `IAM-004` | `HIGH` | Permissões de Exclusão Irrestrita | Statement com `Effect: Allow` contendo `:delete*`, `:terminate*`, `:drop*` sem wildcard universal. |
-| `IAM-005` | `MEDIUM` | Statement Allow sem Condição | Statement com `Effect: Allow` sem bloco `Condition` ou com bloco `Condition` vazio. |
-| `IAM-006` | `LOW` | Versão de Política Incorreta ou Ausente | Cabeçalho `Version` ausente ou diferente do padrão normativo `"2012-10-17"`. |
-| `IAM-007` | `CRITICAL` | Uso Perigoso de NotAction com Allow | Presença do campo `NotAction` em statements com `Effect: Allow`. |
-| `IAM-008` | `CRITICAL` | Uso de Wildcard Global em Principal | `Principal` definido como `*` (string, lista ou em dicionários). |
-| `IAM-009` | `HIGH` | iam:PassRole sem Restrição de Condição | Ação `iam:passrole` sem condição válida (`iam:passedtoservice` ou `stringequals`). |
+| `IAM-001` | `CRITICAL` | Ação Universal com Wildcard | Statement com `Effect: Allow` contendo `Action = "*"` ou wildcard genérico de serviço (`s3:*`, `ec2:*`). |
+| `IAM-002` | `CRITICAL` | Recurso Universal com Wildcard | Statement com `Effect: Allow` contendo `Resource = "*"` ou presença de `NotResource` com `Allow`. |
+| `IAM-003` | `HIGH` | Permissão Administrativa Potencial | Statement com `Effect: Allow` com ações sensíveis de gerenciamento de identidade (`iam:*`, `iam:attach*`, `iam:put*`, `iam:create*`, `iam:update*`, `iam:delete*`, `iam:passrole`). |
+| `IAM-004` | `HIGH` | Permissões de Exclusão Irrestrita | Statement com `Effect: Allow` contendo verbos destrutivos curingas (`*:Delete*`, `*:Terminate*`, `*:Drop*`). |
+| `IAM-005` | `MEDIUM` | Statement Allow sem Condição | Statement com `Effect: Allow` sem bloco `Condition` ou com bloco `Condition` vazio `{}`. |
+| `IAM-006` | `LOW` | Versão de Política Incorreta ou Ausente | Cabeçalho `Version` ausente ou divergente da especificação normativa `"2012-10-17"`. |
+| `IAM-007` | `CRITICAL` | Uso Perigoso de NotAction com Allow | Declaração do bloco `NotAction` em statement com efeito `Allow`. |
+| `IAM-008` | `CRITICAL` | Uso de Wildcard Global em Principal | Campo `Principal` definido como `*` (string, lista `["*"]` ou objeto `{"AWS": "*"}`). |
+| `IAM-009` | `HIGH` | iam:PassRole sem Restrição de Condição | Ação `iam:PassRole` sem cláusula `Condition` contendo `iam:PassedToService`. |
 
-#### Regras para Terraform HCL (`type: "terraform"`):
-| ID | Severidade | Título | Condição de Detecção Implementada |
+#### 2.4.2. Regras para Terraform HCL (`type: "terraform"`):
+
+| Código | Severidade | Título | Gatilho Técnico de Detecção |
 | :--- | :---: | :--- | :--- |
-| `TF-001` | `CRITICAL` | Porta Administrativa Aberta para a Internet | `ingress` em `aws_security_group` ou `aws_security_group_rule` com `0.0.0.0/0` ou `::/0` nas portas 22 (SSH), 3389 (RDP), 5432 (Postgres), 3306 (MySQL) ou `0-0` (all traffic). |
-| `TF-002` | `HIGH` | Bucket S3 com ACL Pública | `aws_s3_bucket` ou `aws_s3_bucket_acl` com `acl = "public-read"` ou `"public-read-write"`. |
-| `TF-003` | `HIGH` | Ausência de Bloqueio Público no S3 | `aws_s3_bucket` sem `aws_s3_bucket_public_access_block` ou com flags de bloqueio como `false`. |
-| `TF-004` | `MEDIUM` | Bucket S3 sem Criptografia em Repouso | `aws_s3_bucket` sem configuração inline ou externa de SSE. |
-| `TF-005` | `LOW` | Ausência de Tags Padrão de Governança | Recursos governados sem bloco `tags` contendo `Environment` ou `Project`. |
-| `TF-006` | `HIGH` | Volume EBS sem Criptografia em Repouso | `aws_ebs_volume` ou `aws_instance` com `encrypted = false` ou sem a diretiva `encrypted = true`. |
-| `TF-007` | `HIGH` | Instância RDS sem Criptografia em Repouso | `aws_db_instance` com `storage_encrypted = false` ou sem `storage_encrypted = true`. |
+| `TF-001` | `CRITICAL` | Porta Administrativa Aberta para a Internet | `ingress` em `aws_security_group` ou `aws_security_group_rule` com CIDR `0.0.0.0/0` ou `::/0` expondo portas sensíveis (22 SSH, 3389 RDP, 5432 Postgres, 3306 MySQL) ou faixas amplas (ex: 0 a 65535). |
+| `TF-002` | `HIGH` | Bucket S3 com ACL Pública | Atributo `acl` em `aws_s3_bucket` ou `aws_s3_bucket_acl` configurado como `public-read`, `public-read-write` ou `authenticated-read`. |
+| `TF-003` | `HIGH` | Ausência de Bloqueio Público no S3 | Ausência de `aws_s3_bucket_public_access_block` para o bucket ou flags de bloqueio explicitamente configuradas como `false`. |
+| `TF-004` | `MEDIUM` | Bucket S3 sem Criptografia em Repouso | Ausência de bloco inline ou recurso complementar `aws_s3_bucket_server_side_encryption_configuration`. |
+| `TF-005` | `LOW` | Ausência de Tags Padrão de Governança | Recursos governados (`aws_s3_bucket`, `aws_security_group`, `aws_ebs_volume`, `aws_db_instance`, `aws_instance`) sem bloco `tags` contendo `Environment` ou `Project`. |
+| `TF-006` | `HIGH` | Volume EBS sem Criptografia em Repouso | `aws_ebs_volume` ou blocos de disco em `aws_instance` sem `encrypted = true` ou com `encrypted = false`. |
+| `TF-007` | `HIGH` | Instância RDS sem Criptografia em Repouso | `aws_db_instance` sem `storage_encrypted = true` ou com `storage_encrypted = false`. |
 
 ---
 
-## 3. Plano de Testes de Estresse & Resiliência (Stress & Load Testing)
+## 3. Plano de Testes de Estresse & Resiliência Operacional (Stress & Load Testing)
 
-### 3.1. Limites de Payload e Volumetria de Dados
-- **Objetivo:** Avaliar a capacidade do parser e do runtime AWS Lambda de processar payloads de tamanhos progressivos sem estourar tempo ou memória.
-- **Cenários a Executar:**
-  1. **Payload Tiny (1 KB):** Política IAM padrão com 1 statement. (Baseline de latência).
-  2. **Payload Médio (100 KB):** Política com dezenas de statements e comentários HCL extensos.
-  3. **Payload Grande (1 MB a 5 MB):** Manifesto HCL gigante contendo centenas de definições de Security Groups e volumes EBS.
-  4. **Payload Limite API Gateway (10 MB):** Teste de borda contra o limite do AWS API Gateway (Payload Too Large - 413).
-  5. **Análise de Profundidade JSON (Nesting Stress):** JSON com 100 níveis de aninhamento para validar se `json.loads` atinge o limite de recursão do Python.
-
----
-
-### 3.2. Carga Sintética de Statements e Recursos
-- **Objetivo:** Verificar se o tempo de execução do motor cresce de forma linear $\mathcal{O}(N)$ ou quadrática $\mathcal{O}(N^2)$ ao analisar grandes volumes de entidades.
-- **Cenários a Executar:**
-  1. Gerar documento IAM com 500 statements individuais.
-  2. Gerar documento IAM com 2.500 statements com mix de conformidade e não conformidade.
-  3. Gerar código HCL com 1.000 blocos de `resource "aws_security_group"`.
-  4. Medir o consumo de CPU e tempo de execução na Lambda (limite de 10 segundos).
+### 3.1. Volumetria de Dados e Limites de Payload (512 KB)
+- **Risco:** Payloads excessivamente grandes podem esgotar a memória da função Lambda (128 MB), provocar timeouts faturados no API Gateway e gerar custos não planejados.
+- **Cenários de Teste:**
+  1. *Payload Baseline (1 KB a 10 KB):* Documento IAM e manifesto HCL típicos para medição de latência baseline (alvo: < 50ms).
+  2. *Payload Médio (100 KB a 250 KB):* Políticas corporativas com dezenas de statements e comentários extensos.
+  3. *Payload no Limite Superior (500 KB):* Documento ligeiramente abaixo do limiar `MAX_PAYLOAD_BYTES = 524.288` (deve ser processado com sucesso).
+  4. *Payload Excedido (513 KB a 2 MB):* Submissão de volumes superiores a 512 KB. Deve disparar retorno imediato de **HTTP 413 Payload Too Large** sem carregar o parser JSON ou executar auditoria.
+  5. *Ataque de Padding Nulo / Espaços em Branco:* Envio de 600 KB constituídos por 1 statement válido seguido de 599 KB de espaços em branco (deve ser barrado no pre-check de tamanho).
 
 ---
 
-### 3.3. Avaliação de ReDoS (Regex Denial of Service)
-- **Objetivo:** Testar as expressões regulares do analisador de HCL contra strings patológicas desenhadas para provocar *catastrophic backtracking*.
-- **Alvos de Expressões Regulares em Análise:**
-  - `re.sub(r"/\*.*?\*/", "", content, flags=re.DOTALL)`: Comentários de bloco sem fechamento (`/*` seguido de 100.000 caracteres sem `*/`).
-  - `re.compile(r'resource\s+"([a-zA-Z0-9_\-]+)"\s+"([a-zA-Z0-9_\-]+)"\s*\{')`: Espaços em branco repetidos excessivamente entre tokens.
-  - `re.compile(rf'{block_name}\s*\{{')`: Verificação de aninhamento de chaves desbalanceadas.
-  - `re.search(r'cidr_blocks\s*=\s*\[(.*?)\]', rule_body, re.DOTALL)`: Listas com milhares de vírgulas, quebras de linha e strings incompletas.
+### 3.2. Carga Sintética de Statements e Recursos (DoS Prevention)
+- **Risco:** Loops de iteração não limitados podem degradar o tempo de resposta em $\mathcal{O}(N^2)$ ou travar a CPU da Lambda.
+- **Cenários de Teste:**
+  1. *Políticas com 100, 250 e 500 statements:* Validação de desempenho linear $\mathcal{O}(N)$ e tempo de resposta < 500ms.
+  2. *Defesa contra Explosão de Statements (501 a 2.000 statements):* A Lambda impõe `MAX_ALLOWED_STATEMENTS = 500`. Deve retornar **HTTP 400 Bad Request** de forma controlada: `"O documento excede o limite máximo permitido de 500 statements por política."`
+  3. *Carga HCL de 500 Security Groups:* Validação do contador de chaves e regex do analisador HCL sob alta densidade de blocos.
 
 ---
 
-### 3.4. Limites Operacionais de Memória e Timeout (FinOps Scale-to-Zero)
+### 3.3. Profundidade de Aninhamento JSON (Anti-Recursion DoS)
+- **Risco:** Estruturas JSON profundamente aninhadas podem causar `RecursionError` / estouro de pilha no interpretador Python 3.12 (`sys.getrecursionlimit()`).
+- **Mecanismo Defensivo:** Algoritmo iterativo `_check_nesting_depth` limitando o aninhamento a no máximo 20 níveis para validações defensivas (ou teto configurável de 800).
+- **Cenários de Teste:**
+  1. *Aninhamento Normal (1 a 5 níveis):* Execução transparente.
+  2. *Aninhamento Patológico (30 a 100 níveis de dicionários/listas aninhadas):* Interrupção com **HTTP 400 Bad Request** informando `"Limite de recursão excedido devido a aninhamento excessivo no JSON (RecursionError)."`.
+  3. *Garantia Anti-Crash:* A aplicação nunca deve lançar exceção não capturada ou retornar HTTP 500 com dump de erro interno.
+
+---
+
+### 3.4. Avaliação de ReDoS (Regex Denial of Service)
+- **Risco:** Expressões regulares vulneráveis a *catastrophic backtracking* podem reter a CPU em 100% até o timeout da Lambda.
+- **Expressões Auditadas:**
+  - `re.sub(r"/\*.*?\*/", "", content, flags=re.DOTALL)`: Bloco de comentário não fechado `/*` seguido de 200.000 caracteres de texto sem `*/`.
+  - `re.compile(r'resource\s+"([a-zA-Z0-9_\-]+)"\s+"([a-zA-Z0-9_\-]+)"\s*\{')`: Milhares de espaços em branco e tabulações intercaladas entre palavras-chave.
+  - `re.search(r'cidr_blocks\s*=\s*\[(.*?)\]', rule_body, re.DOTALL)`: Listas com milhares de quebras de linha e vírgulas órfãs.
+- **Validação:** Tempo de execução sob strings patológicas deve permanecer < 100ms.
+
+---
+
+### 3.5. Limites Operacionais de Memória e Timeout (FinOps Scale-to-Zero)
 - **Configuração da Lambda em Terraform:**
   - `memory_size = 128` (MB)
   - `timeout = 10` (segundos)
-- **Métricas a Monitorar via CloudWatch:**
-  - `Duration` vs `Billed Duration`
-  - `Max Memory Used` (Verificar se atinge margem de segurança < 80 MB)
-  - Ocorrência de eventos `Task timed out after 10.00 seconds`
+- **Critérios de Homologação:**
+  - Consumo de memória real não deve ultrapassar 70 MB sob carga máxima autorizada.
+  - Duração típica das requisições deve permanecer sub-100ms.
+  - Zero ocorrências de timeouts faturados de 10 segundos no CloudWatch.
 
 ---
 
 ## 4. Plano de Testes de Evasão & Bypasses de Análise Estática
 
-### 4.1. Evasão em Regras IAM (Case Sensitivity, Arrays e Lógica de Efeito)
+### 4.1. Evasões Semânticas em Políticas IAM
 
-Como o parser IAM avalia propriedades JSON e strings em Python, devem ser testados os seguintes vetores de bypass:
-
-1. **Variações de Case nas Chaves e Valores:**
-   - Testar `"effect": "allow"` vs `"Effect": "Allow"`.
-   - Testar `"action": "*"` vs `"Action": "*"`.
-   - Testar `"resource": "*"` vs `"Resource": "*"`.
-   - Testar `"IAM:PassRole"` ou `"Iam:PassRole"` em vez de `"iam:PassRole"`.
-2. **Normalização de Espaços e Caracteres Especiais:**
-   - Inserção de espaços em branco ou tabs dentro das strings de ação (`" s3:* "`, `"iam:PassRole "`).
-   - Caracteres Unicode ou zero-width space antes de wildcards.
-3. **Representação Mista de Tipos em `Action` e `Resource`:**
-   - `Action` como string única vs lista de strings vs array com valores vazios `["", "*"]`.
-4. **Statement de Negação (`Effect: Deny`) com Wildcards:**
-   - Verificar se um statement legítimo de negação (`Effect: Deny`, `Action: *`, `Resource: *`) é incorretamente penalizado pelo motor como `IAM-001` ou `IAM-002`.
-5. **Bypass da Regra `IAM-009` (`iam:PassRole`):**
-   - Criação de bloco `Condition` espúrio (ex: `{"Null": {"dummy": "true"}}`) sem a restrição real `iam:PassedToService`, verificando se o motor valida adequadamente a semântica da condição.
-6. **Bypass da Regra `IAM-008` (Principal):**
-   - Inserção de wildcard em chaves complexas como `{"AWS": ["arn:aws:iam::123456789012:root", "*"]}`.
+| ID | Técnica de Evasão | Vetor de Teste | Comportamento Esperado do Motor |
+| :--- | :--- | :--- | :--- |
+| **EVA-IAM-01** | Casing Inversion | `"action": "s3:*"` ou `"ACTION": "*"` | Normalização recursiva de chaves via `_normalize_iam_dict_keys`; detectado como `IAM-001`. |
+| **EVA-IAM-02** | Efeito em Minúsculas | `"effect": "allow"` | Normalizado com `.strip().lower() == "allow"`; auditado sem bypass. |
+| **EVA-IAM-03** | Inversão Lógica `NotAction` | `"NotAction": "iam:Delete*"` com `Effect: Allow` | Capturado pela regra `IAM-007` (`CRITICAL`), impedindo concessão irrestrita velada. |
+| **EVA-IAM-04** | Inversão Lógica `NotResource` | `"NotResource": "arn:aws:s3:::safe-bucket"` com `Allow` | Capturado pela regra `IAM-002` (`CRITICAL`), acusando permissão irrestrita a todos os outros recursos. |
+| **EVA-IAM-05** | Wildcard Oculto em Array | `"Action": ["s3:GetObject", " * "]` | Remoção de espaços com `.strip()`; detectado como `IAM-001`. |
+| **EVA-IAM-06** | PassRole sem Condição Válida | `"Condition": {"StringEquals": {"dummy": "val"}}` | Validação semântica exige a chave `iam:PassedToService`; detectado como `IAM-009`. |
+| **EVA-IAM-07** | Wildcard Complexo em Principal | `"Principal": {"AWS": ["arn:...", "*"]}` | Inspeção recursiva em listas de dicionários; detectado como `IAM-008`. |
 
 ---
 
-### 4.2. Evasão em Regras Terraform HCL (Regex vs Sintaxe Real)
+### 4.2. Evasões em Regras Terraform HCL (Regex vs Sintaxe Real)
 
-O parser de HCL é baseado em contagem de chaves e expressões regulares. Isso abre possíveis brechas que precisam ser estressadas:
-
-1. **Quebras de Linha e Espaçamentos Não Canônicos:**
-   - Declaração de recursos com quebras de linha entre palavras-chave:
-     ```hcl
-     resource
-       "aws_security_group"
-       "evasion_sg" {
-     ```
-   - Verificar se a regex `resource\s+"([a-zA-Z0-9_\-]+)"\s+"([a-zA-Z0-9_\-]+)"\s*\{` reconhece adequadamente a declaração.
-2. **Chaves `{}` Dentro de Strings Literais:**
-   - Inclusão de chaves `{` ou `}` dentro de descrições ou strings:
-     ```hcl
-     description = "Regra contendo chave { desbalanceadora"
-     ```
-   - Testar se o algoritmo `depth` brace counter é corrompido ao encontrar chaves literais dentro de aspas.
-3. **Uso de Comentários Aninhados e Comentários de Linha Especial:**
-   - Comentários no padrão `#`, `//` e `/* */` misturados na mesma linha de declarações sensíveis.
-4. **Variáveis e Valores Computados:**
-   - `encrypted = var.encryption_enabled`
-   - `storage_encrypted = local.enable_rds_encryption`
-   - O auditor deve tratar variáveis desconhecidas de forma determinística (conforme especificação, ausência de `true` literal é considerada achado).
+| ID | Técnica de Evasão | Vetor de Teste | Comportamento Esperado do Motor |
+| :--- | :--- | :--- | :--- |
+| **EVA-TF-01** | Quebras de Linha em Tokens | `resource\n "aws_security_group"\n "web" {` | A regex `resource\s+...` com suporte a `\s` captura a declaração integralmente. |
+| **EVA-TF-02** | Chaves Dentro de Strings Literais | `description = "Porta liberada { teste }"` | O algoritmo `depth` brace counter não se corrompe ao contar blocos externos. |
+| **EVA-TF-03** | Comentários Mistos na Mesma Linha | `from_port = 22 # inline\n to_port = 22 // inline` | Sanitização prévia via `_strip_hcl_comments` remove comentários preservando tokens. |
+| **EVA-TF-04** | ACL Semi-Pública | `acl = "authenticated-read"` | O regex `PUBLIC_S3_ACL_PATTERN` detecta `authenticated-read` como achado `TF-002`. |
+| **EVA-TF-05** | Public Access Block Desativado | `block_public_acls = false` | O motor inspeciona flags booleanas desativadas e acusa `TF-003`. |
 
 ---
 
-### 4.3. Bypasses de Portas, Notação CIDR e IPv6
+### 4.3. Bypasses de Portas, Faixas Contíguas e Notação CIDR/IPv6
 
 1. **Faixas de Portas Abrangentes:**
-   - Em vez de especificar a porta exata 22, configurar `from_port = 20` e `to_port = 80`.
-   - O motor deve detectar que 22 está contido na faixa.
-   - Testar faixas com `from_port = 0` e `to_port = 65535`.
-2. **Variações de CIDR Wildcard:**
-   - `["0.0.0.0/0"]` vs `["0.0.0.0/0", "10.0.0.0/8"]`
-   - Notação IPv6 `["::/0"]`
-   - CIDRs adjacentes: `["0.0.0.0/1", "128.0.0.0/1"]` (que cobrem 100% da internet sem usar `0.0.0.0/0`).
+   - Em vez de especificar `from_port = 22` e `to_port = 22`, submeter `from_port = 20` e `to_port = 80`.
+   - O algoritmo `_check_ingress_rule` calcula `from_port <= 22 <= to_port` e detecta a abertura de SSH (`TF-001`).
+   - Faixas extremas: `from_port = 0, to_port = 65535` ou `from_port = 0, to_port = 0` (todo o tráfego) detectam todas as 4 portas sensíveis (22, 3389, 5432, 3306).
+2. **Notação IPv6 Wildcard:**
+   - Submissão de `cidr_blocks = ["::/0"]` aberta na porta 3389.
+   - O motor reconhece `"::/0"` com a mesma severidade `CRITICAL` de `0.0.0.0/0`.
+
+---
+
+### 4.4. Mitigação e Supressão de Falsos Positivos
+
+- **Políticas com `Effect: Deny` Defensivo:**
+  - Declarações mandatadas pelo CIS AWS (como bloqueio explícito de transporte inseguro `aws:SecureTransport: false` ou negação universal de exclusão `Effect: Deny, Action: *`) **não devem deduzir pontos do score**.
+  - O motor ignora declarações que não possuam `Effect: Allow`, garantindo **Score 100 (LOW)** para controles puramente defensivos.
 
 ---
 
 ## 5. Sondas de Borda da API & Protocolo (Edge Probing)
 
 ### 5.1. Fuzzing de Métodos HTTP e Cabeçalhos
-- **Sonda 1 (Métodos HTTP Inválidos):**
-  - Submissão de requisições `GET`, `PUT`, `DELETE`, `PATCH`, `HEAD` para `/audit`.
-  - Verificação se o API Gateway ou a Lambda retornam HTTP 400 ou 405 sem vazar stack trace.
-- **Sonda 2 (Content-Type Malformado ou Ausente):**
-  - Envio de payload com `Content-Type: text/plain`.
-  - Envio com `Content-Type: application/x-www-form-urlencoded`.
-  - Envio sem nenhum cabeçalho `Content-Type`.
-- **Sonda 3 (Injeção de Campos Desconhecidos / Parameter Pollution):**
-  - Payload com chaves não previstas:
-    ```json
-    {
-      "type": "iam",
-      "content": "...",
-      "admin": true,
-      "bypass_rules": ["IAM-001"],
-      "__proto__": { "polluted": true }
-    }
-    ```
-  - Garantir que parâmetros espúrios sejam ignorados sem afetar a lógica.
+- **Sonda PRB-01 (Métodos HTTP Inválidos):**
+  - Chamadas com `GET`, `PUT`, `DELETE`, `PATCH`, `HEAD` para o endpoint `/audit`.
+  - Resposta esperada: `HTTP 400 Bad Request` ou `HTTP 405 Method Not Allowed` retornado pelo API Gateway/Lambda sem vazar traces internos.
+- **Sonda PRB-02 (Content-Type Anômalo ou Ausente):**
+  - Submissão com `Content-Type: text/plain`, `application/xml` ou sem header.
+  - O handler Lambda deve realizar parse resiliente do payload JSON ou responder com erro 400 amigável.
+- **Sonda PRB-03 (Parameter Pollution / Injeção de Propriedades):**
+  - Envio de campos extras como `{"type": "iam", "content": "...", "admin": true, "__proto__": {"polluted": true}}`.
+  - A API deve processar estritamente `type` e `content`, descartando atributos espúrios de forma segura.
 
 ---
 
 ### 5.2. Manipulação de Base64 e Codificação de Caracteres
-- **Sonda 4 (Flags de Base64 Malformadas):**
-  - Envio de evento simulando `isBase64Encoded: true` com corpo contendo string que não é Base64 válida.
-  - Verificação da resposta de erro HTTP 400 (`Erro na decodificação Base64`).
-- **Sonda 5 (Codificações Especiais UTF-8 / Caracteres Nulos):**
-  - Envio de caracteres nulos `\u0000` embutidos no JSON.
-  - Caracteres multilíngues (cirílico, kanji, emojis) no corpo do conteúdo.
+- **Sonda PRB-04 (Base64 Corrompido):**
+  - Evento com `isBase64Encoded: true` e corpo contendo lixo binário ou strings com padding inválido.
+  - Tratamento com bloco `except (binascii.Error, ValueError)` retornando **HTTP 400 Bad Request** (`"Erro na decodificação Base64"`).
+- **Sonda PRB-05 (Caracteres de Controle Não-Imprimíveis):**
+  - Submissão de bytes nulos `\x00` ou caracteres de controle ASCII (`\x01` a `\x1f`).
+  - No motor HCL, sanitização automática via `CONTROL_CHARS_PATTERN`; no motor IAM, rejeição pelo parser JSON restrito.
 
 ---
 
 ### 5.3. Validação de Políticas de CORS e Preflight
-- **Sonda 6 (OPTIONS Preflight Completo):**
-  - Envio de `OPTIONS /audit` com cabeçalhos:
-    - `Origin: https://malicious-site.example.com`
-    - `Access-Control-Request-Method: POST`
-    - `Access-Control-Request-Headers: Content-Type`
-  - Validar se o status é `200 OK` e se os cabeçalhos CORS são retornados com segurança.
+- **Sonda PRB-06 (Preflight OPTIONS):**
+  - Envio de requisição `OPTIONS /audit` simulando origens arbitrárias (`Origin: https://sec-eval.internal`).
+  - Validação do retorno imediato de **HTTP 200 OK** contendo os cabeçalhos:
+    - `Access-Control-Allow-Origin: *` (ou configurado)
+    - `Access-Control-Allow-Methods: POST, OPTIONS`
+    - `Access-Control-Allow-Headers: Content-Type, Authorization`
+
+---
+
+### 5.4. Sanitização Anti-XSS e Content Security Policy (CSP) do Frontend
+- **Sonda PRB-07 (Injeção de Script em Findings):**
+  - Resposta simulada da API contendo tags `<script>alert('xss')</script>` ou `<img src=x onerror=alert(1)>` nos campos `title`, `description` ou `recommendation`.
+  - A função `escapeHtml()` no `app.js` deve neutralizar todos os caracteres (`<`, `>`, `&`, `"`, `'`, `/`), renderizando o texto seguro como texto puro no DOM.
+- **Sonda PRB-08 (Whitelist de Severidades):**
+  - Submissão de severidade injetada `CRITICAL'; injection--`.
+  - O frontend valida contra a whitelist `ALLOWED_SEVERITIES = Set(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'])`, rejeitando valores adulterados.
+- **Sonda PRB-09 (Validação da Meta Tag CSP em `index.html`):**
+  - Verificar a diretiva `connect-src 'self' https://*.execute-api.us-east-2.amazonaws.com;` impedindo exfiltração de dados para origens terceiras não autorizadas.
+- **Sonda PRB-10 (Timeout com AbortController):**
+  - Simulação de latência de 20 segundos na API.
+  - O frontend deve abortar a conexão após 15 segundos (`15000 ms`), restaurar o estado da interface e exibir banner visual amigável sem chamadas bloqueantes a `alert()`.
 
 ---
 
 ## 6. Matriz de Cenários de Teste Executáveis
 
-| ID do Caso | Categoria | Descrição do Teste | Entrada / Vetor | Resultado Esperado | Prioridade |
+| ID do Caso | Categoria | Descrição Técnica do Teste | Entrada / Vetor | Resultado Esperado | Prioridade |
 | :--- | :--- | :--- | :--- | :--- | :---: |
-| **TC-STR-01** | Estresse | Payload IAM volumoso | 1.000 statements `Allow` | HTTP 200, tempo < 2s, sem OOM | P1 |
-| **TC-STR-02** | Estresse | Payload HCL volumoso | 500 Security Groups | HTTP 200, tempo < 3s, sem OOM | P1 |
-| **TC-STR-03** | Estresse / ReDoS | Comentário HCL não terminado | `/*` seguido de 200k chars | Resposta sem travamento de CPU | P0 |
-| **TC-STR-04** | Estresse | Profundidade JSON extrema | 150 níveis de objetos aninhados | HTTP 400 ou 200 sem crash | P2 |
-| **TC-EVA-01** | Evasão IAM | Case variation em Action | `"Action": "iam:passrole"` | Detectado por `IAM-009` | P0 |
-| **TC-EVA-02** | Evasão IAM | Espaço antes do Wildcard | `"Action": " * "` | Detectado por `IAM-001` | P0 |
-| **TC-EVA-03** | Evasão IAM | Deny com Wildcard | `Effect: Deny, Action: *` | NÃO deve gerar `IAM-001` | P1 |
-| **TC-EVA-04** | Evasão IAM | Array em Principal | `Principal: { AWS: ["*"] }` | Detectado por `IAM-008` | P0 |
-| **TC-EVA-05** | Evasão HCL | Chave dentro de String | `description = "SG { teste }"` | Contagem de blocos íntegra | P0 |
-| **TC-EVA-06** | Evasão HCL | Range amplo de portas | `from_port = 1, to_port = 100` | Detectado por `TF-001` (SSH 22) | P0 |
-| **TC-EVA-07** | Evasão HCL | IPv6 Wildcard | `cidr_blocks = ["::/0"]` | Detectado por `TF-001` | P0 |
-| **TC-EVA-08** | Evasão HCL | Quebras de linha em declaração | `resource\n"aws_s3_bucket"` | Detectado normalmente | P1 |
-| **TC-PRB-01** | Sonda Borda | Método HTTP GET | `GET /audit` | HTTP 400 ou 405 | P1 |
-| **TC-PRB-02** | Sonda Borda | Tipo de auditoria inválido | `type: "azure_arm"` | HTTP 400 ("Tipo de auditoria inválido") | P1 |
-| **TC-PRB-03** | Sonda Borda | Payload Base64 corrompido | `isBase64Encoded: true` com lixo | HTTP 400 (Erro decodificação) | P1 |
-| **TC-PRB-04** | Sonda Borda | Requisição OPTIONS Preflight | `OPTIONS /audit` | HTTP 200 (`status: ok`) | P1 |
+| **TC-STR-01** | Estresse | Payload IAM volumetricamente elevado | 500 statements `Allow` | HTTP 200, score calculado, tempo < 500ms | P1 |
+| **TC-STR-02** | Estresse | Tentativa de DoS por explosão de statements | 501 statements `Allow` | HTTP 400 com mensagem de limite excedido | P0 |
+| **TC-STR-03** | Estresse | Payload excedendo o teto de 512 KB | String com 525 KB de caracteres | HTTP 413 Payload Too Large imediato | P0 |
+| **TC-STR-04** | Estresse | ReDoS com comentário de bloco sem fechamento | `/*` seguido de 250k caracteres | Retorno normal sem consumo de CPU | P0 |
+| **TC-STR-05** | Estresse | Recursão profunda em JSON (> 20 níveis) | JSON aninhado com 35 níveis | HTTP 400 RecursionError tratado | P1 |
+| **TC-EVA-01** | Evasão | Casing em chaves IAM (`action`, `resource`) | JSON com chaves minúsculas | Detectado normalmente (`IAM-001`, `IAM-002`) | P0 |
+| **TC-EVA-02** | Evasão | Inversão lógica perigosa com `NotAction` | `Effect: Allow, NotAction: iam:Delete*` | Detectado como `IAM-007` (CRITICAL) | P0 |
+| **TC-EVA-03** | Evasão | Inversão lógica perigosa com `NotResource`| `Effect: Allow, NotResource: arn:...` | Detectado como `IAM-002` (CRITICAL) | P0 |
+| **TC-EVA-04** | Evasão | Wildcard com espaços (`" * "`) | `"Action": " * "` | Detectado como `IAM-001` (CRITICAL) | P0 |
+| **TC-EVA-05** | Falso Positivo| Política defensiva com `Effect: Deny` | CIS deny statement com `Action: *` | Score 100 (LOW), sem achados espúrios | P1 |
+| **TC-EVA-06** | Evasão | Security Group com faixa cobrindo porta 22 | `from_port = 20, to_port = 25` | Detectado como `TF-001` (SSH 22) | P0 |
+| **TC-EVA-07** | Evasão | Security Group expondo todas as portas | `from_port = 0, to_port = 0` | Detectado como `TF-001` (22, 3389, 5432, 3306) | P0 |
+| **TC-EVA-08** | Evasão | Regra Ingress com CIDR IPv6 global | `cidr_blocks = ["::/0"]` (porta 3389) | Detectado como `TF-001` (RDP 3389) | P0 |
+| **TC-EVA-09** | Evasão | Chaves literais `{}` dentro de string HCL | `description = "SG com chave { teste }"` | Parse íntegro de blocos subsequentes | P1 |
+| **TC-PRB-01** | Borda | Método HTTP GET na rota de auditoria | `GET /audit` | HTTP 400 ou 405 sem stack trace | P1 |
+| **TC-PRB-02** | Borda | Tipo de auditoria inválido no JSON | `{"type": "azure_arm", "content": "..."}`| HTTP 400 ("Tipo de auditoria inválido") | P1 |
+| **TC-PRB-03** | Borda | Conteúdo vazio ou composto por espaços | `{"type": "iam", "content": "   "}` | HTTP 400 ("campo content é obrigatório") | P1 |
+| **TC-PRB-04** | Borda | Payload Base64 com dados corrompidos | `isBase64Encoded: true` com lixo | HTTP 400 ("Erro decodificação Base64") | P1 |
+| **TC-PRB-05** | Borda | Requisição de Preflight CORS | `OPTIONS /audit` | HTTP 200 (`status: ok`) com headers CORS | P1 |
+| **TC-PRB-06** | Borda/XSS | Tentativa de injeção de script via findings | Payload simulado com `<script>` | Entidades escapadas via `escapeHtml()` | P0 |
 
 ---
 
-## 7. Cronograma e Automação de Execução
+## 7. Diretrizes de Execução e Automação
 
-As baterias de testes desenhadas neste plano serão implementadas utilizando:
-1. **Testes Unitários Automatizados (Python `unittest`):** Implementação na pasta `qa/` de suíte executável sem dependências externas.
-2. **Scripts de Teste de Carga e Sondas de Borda (`qa/probes/`):** Chamadas HTTP contra a API ao vivo documentada em `api_url`.
-3. **Relatório de Conformidade:** Geração de sumário de achados de QA e validação de cobertura.
+O pipeline de testes da branch `qa/stress-audit` é estruturado em suítes modulares utilizando estritamente a biblioteca padrão do Python (`unittest`):
+
+1. **`qa/test_stress_local.py`:** Suíte de estresse sintético local (payloads volumosos, limites de tamanho, saturação de statements, profundidade JSON e vetores ReDoS).
+2. **`qa/test_evasion_bypass.py`:** Bateria de testes de evasão semântica (casing, arrays, NotAction/NotResource, range de portas, IPv6 e supressão de falsos positivos).
+3. **`qa/probe_production.py`:** Sondas de borda executadas diretamente contra a API pública em produção (`https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit`), validando CORS, preflight, métodos e comportamento de borda.
+4. **`qa/audit_frontend.py`:** Verificação estática do código da SPA (`web/`), assegurando proteção anti-XSS, integridade de CSP, timeouts determinísticos e ausência de bloqueios síncronos na interface.
 
 ---
-*Documento mantido pela equipe de QA & AppSec — Branch `qa/stress-audit`.*
+*Documento de Referência Técnica mantido pela Engenharia de QA & AppSec — Branch `qa/stress-audit`.*
