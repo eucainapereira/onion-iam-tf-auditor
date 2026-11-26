@@ -1,6 +1,6 @@
 """
 Suíte Oficial de Testes de Regressão 1-para-1 de Hardening e Segurança (Camada 5 - Onion Flow).
-Cobre exaustivamente cada ID de vulnerabilidade (QA-001 a QA-015) documentado no QA_REPORT.md.
+Cobre exaustivamente cada ID de vulnerabilidade (QA-001 a QA-016) documentado no QA_REPORT.md.
 Utiliza estritamente a biblioteca padrão do Python (unittest, json, re, os, sys, pathlib).
 """
 
@@ -552,6 +552,39 @@ resource "aws_s3_bucket" "safe_bucket" {
         self.assertIn("api_throttling_burst_limit", tf_vars, "Variável api_throttling_burst_limit deve estar declarada")
         self.assertIn("api_throttling_rate_limit", tf_vars, "Variável api_throttling_rate_limit deve estar declarada")
         self.assertIn("cors_allow_origins", tf_vars, "Variável cors_allow_origins deve estar declarada")
+        self.assertRegex(tf_vars, r'variable\s+"api_throttling_burst_limit"\s*\{[^}]*default\s*=\s*50', "api_throttling_burst_limit default deve ser 50")
+        self.assertRegex(tf_vars, r'variable\s+"api_throttling_rate_limit"\s*\{[^}]*default\s*=\s*20', "api_throttling_rate_limit default deve ser 20")
+
+    # =========================================================================
+    # QA-016: Fontes Externas e Resiliência de Ativos Tipográficos
+    # =========================================================================
+    def test_qa_016_frontend_fonts_external_asset_security(self):
+        """
+        [QA-016] Garante que links de folhas de estilo externas em web/index.html usem
+        crossorigin="anonymous", que web/styles.css declare fontes de fallback seguras do
+        sistema operacional (--font-sans e --font-mono), e não utilize @import ou url().
+        """
+        html_path = WEB_DIR / "index.html"
+        html_content = html_path.read_text(encoding="utf-8")
+
+        # Verifica crossorigin="anonymous" no link de fonts.googleapis.com
+        self.assertRegex(
+            html_content,
+            r'<link[^>]+fonts\.googleapis\.com[^>]+crossorigin="anonymous"[^>]*>',
+            "Link de fontes externas deve conter crossorigin=\"anonymous\"",
+        )
+
+        css_path = WEB_DIR / "styles.css"
+        css_content = css_path.read_text(encoding="utf-8")
+
+        # Verifica ausência total de @import e url()
+        self.assertNotIn("@import", css_content, "Folha de estilo não deve utilizar @import externo")
+        self.assertNotIn("url(", css_content, "Folha de estilo não deve invocar url() externa")
+
+        # Verifica presença de fontes de fallback do sistema
+        self.assertIn("sans-serif", css_content, "--font-sans deve conter fallback genérico 'sans-serif'")
+        self.assertIn("monospace", css_content, "--font-mono deve conter fallback genérico 'monospace'")
+        self.assertIn("-apple-system", css_content, "Fallback deve contemplar fontes do sistema (-apple-system)")
 
 
 if __name__ == "__main__":
