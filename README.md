@@ -14,6 +14,8 @@
 > - **Frontend URL (S3 Static Website):** [http://onion-auditor-frontend-654341980060-us-east-2.s3-website.us-east-2.amazonaws.com](http://onion-auditor-frontend-654341980060-us-east-2.s3-website.us-east-2.amazonaws.com)
 > - **API URL (API Gateway v2 + Lambda):** `https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit`
 
+[![Onion Auditor — Demonstração da Aplicação em Execução](docs/screenshot.png)](http://onion-auditor-frontend-654341980060-us-east-2.s3-website.us-east-2.amazonaws.com)
+
 ---
 
 ## 📌 Sumário
@@ -148,6 +150,8 @@ onion-iam-tf-auditor/
 ├── .github/
 │   └── workflows/
 │       └── deploy.yml              # Pipeline CI/CD automatizado no GitHub Actions
+├── docs/
+│   └── screenshot.png              # Captura de tela da aplicação em execução
 ├── iam/
 │   └── lambda-policy.json          # Política de menor privilégio para a função Lambda
 ├── src/
