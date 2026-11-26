@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.execute-api.us-east-2.amazonaws.com;">
   <title>🧅 Onion Auditor — Auditor Visual de Políticas IAM & Terraform</title>
   <meta name="description" content="Auditor visual serverless de políticas AWS IAM e código Terraform HCL com foco em DevSecOps e FinOps.">
   <link rel="stylesheet" href="styles.css">
@@ -43,6 +44,16 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Notification Banner (Acessível, sem alert() síncrono) -->
+    <div class="alert-banner" id="alertBanner" role="alert" style="display: none;">
+      <span class="alert-icon" id="alertIcon">⚠️</span>
+      <div class="alert-content">
+        <strong class="alert-title" id="alertTitle">Notificação</strong>
+        <p class="alert-message" id="alertMessage"></p>
+      </div>
+      <button type="button" class="alert-close" id="btnAlertClose" aria-label="Fechar notificação">✕</button>
     </div>
 
     <!-- Main Grid: Left Editor & Right Results -->

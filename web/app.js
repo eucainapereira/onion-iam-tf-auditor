@@ -1,6 +1,7 @@
 /**
  * Onion Auditor - Client-side Logic (Vanilla JavaScript)
  * Zero frameworks, FinOps Scale-to-Zero frontend.
+ * Hardened with Anti-XSS, AbortController timeouts, and accessible visual alerts.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -24,6 +25,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const apiUrlInput = document.getElementById('apiUrlInput');
   const btnSaveApiUrl = document.getElementById('btnSaveApiUrl');
 
+  const alertBanner = document.getElementById('alertBanner');
+  const alertIcon = document.getElementById('alertIcon');
+  const alertTitle = document.getElementById('alertTitle');
+  const alertMessage = document.getElementById('alertMessage');
+  const btnAlertClose = document.getElementById('btnAlertClose');
+
   const emptyState = document.getElementById('emptyState');
   const auditDashboard = document.getElementById('auditDashboard');
   const resultsStatusBadge = document.getElementById('resultsStatusBadge');
@@ -41,6 +48,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const findingsCount = document.getElementById('findingsCount');
   const findingsList = document.getElementById('findingsList');
   const perfectBanner = document.getElementById('perfectBanner');
+
+  // Whitelist of valid severity values against injection (QA-004)
+  const ALLOWED_SEVERITIES = new Set(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']);
 
   // Application State
   let currentType = 'iam'; // 'iam' | 'terraform'
@@ -149,6 +159,47 @@ resource "aws_db_instance" "unencrypted_rds" {
 }
 `;
 
+  // Accessible Notification System (replaces native blocking dialogs - QA-012)
+  function showAlert(message, type = 'error', title = null) {
+    if (!alertBanner || !alertMessage) return;
+
+    const typeConfig = {
+      error: {
+        title: title || 'Erro na Requisição',
+        icon: '🚨',
+        className: 'alert-banner alert-error',
+      },
+      warning: {
+        title: title || 'Atenção na Validação',
+        icon: '⚠️',
+        className: 'alert-banner alert-warning',
+      },
+      info: {
+        title: title || 'Informação',
+        icon: 'ℹ️',
+        className: 'alert-banner alert-info',
+      },
+    };
+
+    const config = typeConfig[type] || typeConfig.error;
+    alertBanner.className = config.className;
+    if (alertIcon) alertIcon.textContent = config.icon;
+    if (alertTitle) alertTitle.textContent = config.title;
+    alertMessage.textContent = message;
+    alertBanner.style.display = 'flex';
+    alertBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function hideAlert() {
+    if (alertBanner) {
+      alertBanner.style.display = 'none';
+    }
+  }
+
+  if (btnAlertClose) {
+    btnAlertClose.addEventListener('click', hideAlert);
+  }
+
   // Initialize API Endpoint Status
   function checkApiStatus() {
     const dot = apiStatusIndicator.querySelector('.status-dot');
@@ -166,10 +217,23 @@ resource "aws_db_instance" "unencrypted_rds" {
   if (btnSaveApiUrl) {
     btnSaveApiUrl.addEventListener('click', () => {
       const val = apiUrlInput.value.trim();
-      if (val) {
-        activeApiUrl = val;
-        window.API_URL = val;
+      if (!val) {
+        showAlert('Por favor, informe a URL do endpoint.', 'warning', 'URL Obrigatória');
+        return;
+      }
+
+      try {
+        const parsedUrl = new URL(val);
+        if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+          showAlert('Protocolo inválido. Apenas URLs HTTP ou HTTPS são permitidas.', 'warning', 'Protocolo Inválido');
+          return;
+        }
+        activeApiUrl = parsedUrl.toString();
+        window.API_URL = activeApiUrl;
         checkApiStatus();
+        hideAlert();
+      } catch (err) {
+        showAlert('Formato de URL inválido. Certifique-se de incluir o protocolo (ex: https://...).', 'warning', 'URL Inválida');
       }
     });
   }
@@ -208,18 +272,21 @@ resource "aws_db_instance" "unencrypted_rds" {
     setAuditType('iam');
     codeEditor.value = VULNERABLE_IAM_SAMPLE;
     updateStats();
+    hideAlert();
   });
 
   btnSampleTf.addEventListener('click', () => {
     setAuditType('terraform');
     codeEditor.value = VULNERABLE_TF_SAMPLE;
     updateStats();
+    hideAlert();
   });
 
   btnClear.addEventListener('click', () => {
     codeEditor.value = '';
     updateStats();
     resetResults();
+    hideAlert();
   });
 
   function resetResults() {
@@ -229,22 +296,39 @@ resource "aws_db_instance" "unencrypted_rds" {
     resultsStatusBadge.className = 'results-badge';
   }
 
-  // Audit Execution
+  // Audit Execution with 15s timeout via AbortController and strict input validation
   btnAudit.addEventListener('click', async () => {
+    hideAlert();
+
     const content = codeEditor.value.trim();
     if (!content) {
-      alert('Por favor, insira o código IAM ou Terraform a ser auditado.');
+      showAlert('Por favor, insira o código IAM ou Terraform a ser auditado.', 'warning', 'Conteúdo Obrigatório');
       codeEditor.focus();
+      return;
+    }
+
+    // Defensive payload size validation against FinOps DoS (max 512 KB)
+    const MAX_PAYLOAD_BYTES = 512 * 1024;
+    const payloadBytes = new Blob([content]).size;
+    if (payloadBytes > MAX_PAYLOAD_BYTES) {
+      const sizeKb = (payloadBytes / 1024).toFixed(1);
+      showAlert(`O código inserido possui ${sizeKb} KB e excede o limite máximo permitido de 512 KB. Reduza o volume do documento para prosseguir.`, 'warning', 'Payload Excessivo (FinOps Guard)');
       return;
     }
 
     const targetUrl = activeApiUrl || window.API_URL;
     if (!targetUrl) {
-      alert('URL da API não configurada. Por favor, insira a URL do endpoint no topo da página.');
+      showAlert('URL da API não configurada. Por favor, insira a URL do endpoint no banner superior.', 'warning', 'Endpoint Não Configurado');
       apiConfigBanner.style.display = 'block';
       apiUrlInput.focus();
       return;
     }
+
+    // AbortController for explicit 15-second timeout (QA-009)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 15000);
 
     // Set UI loading state
     btnAudit.disabled = true;
@@ -261,18 +345,49 @@ resource "aws_db_instance" "unencrypted_rds" {
           type: currentType,
           content: content,
         }),
+        signal: controller.signal,
       });
 
-      const data = await response.json();
+      // Validates Content-Type header before JSON deserialization (QA-013)
+      let data = null;
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        try {
+          data = await response.json();
+        } catch (parseErr) {
+          throw new Error(`Falha ao decodificar resposta JSON do servidor: ${parseErr.message}`);
+        }
+      } else {
+        const rawText = await response.text();
+        const snippet = rawText ? rawText.slice(0, 150) : '';
+        throw new Error(`Resposta com formato inesperado (Content-Type: ${contentType || 'indefinido'}, HTTP ${response.status}): ${snippet}`);
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || `Erro HTTP ${response.status}`);
+        const status = response.status;
+        const apiError = (data && data.error) ? data.error : `Erro HTTP ${status}`;
+        const err = new Error(apiError);
+        err.status = status;
+        throw err;
       }
 
       renderAuditResults(data);
     } catch (err) {
-      alert(`Falha na requisição de auditoria: ${err.message}`);
+      if (err.name === 'AbortError') {
+        showAlert('A requisição excedeu o tempo limite defensivo de 15 segundos. O backend serverless pode estar em cold-start ou inacessível.', 'error', 'Tempo Limite Excedido (Timeout 15s)');
+      } else if (err.status === 400) {
+        showAlert(`Requisição inválida (HTTP 400): ${err.message}`, 'error', 'Erro 400 — Bad Request');
+      } else if (err.status === 413) {
+        showAlert('O payload enviado excede o limite máximo permitido pelo servidor (HTTP 413 Payload Too Large / máx. 512 KB).', 'error', 'Erro 413 — Payload Too Large');
+      } else if (err.status === 429) {
+        showAlert('Limite de requisições por segundo excedido (HTTP 429 Too Many Requests). Aguarde alguns segundos antes de tentar novamente.', 'warning', 'Erro 429 — Rate Limit Excedido');
+      } else if (err.status && err.status >= 500) {
+        showAlert(`Falha interna no serviço (HTTP ${err.status}): ${err.message}`, 'error', `Erro ${err.status} — Falha no Servidor`);
+      } else {
+        showAlert(`Falha de comunicação ou rede: ${err.message}`, 'error', 'Erro de Conexão');
+      }
     } finally {
+      clearTimeout(timeoutId);
       btnAudit.disabled = false;
       auditSpinner.style.display = 'none';
       btnAuditText.textContent = 'Executar Auditoria de Segurança';
@@ -286,16 +401,19 @@ resource "aws_db_instance" "unencrypted_rds" {
 
     const { score, risk_level, findings } = result;
 
+    const rawRisk = String(risk_level || 'LOW').toUpperCase().trim();
+    const safeRiskLevel = ALLOWED_SEVERITIES.has(rawRisk) ? rawRisk : 'LOW';
+
     // Update Results Status Badge
-    resultsStatusBadge.textContent = `Concluído: ${risk_level}`;
-    resultsStatusBadge.className = `results-badge risk-${risk_level.toLowerCase()}`;
+    resultsStatusBadge.textContent = `Concluído: ${safeRiskLevel}`;
+    resultsStatusBadge.className = `results-badge risk-${safeRiskLevel.toLowerCase()}`;
 
     // Animate Circular Score
-    animateScore(score);
+    animateScore(typeof score === 'number' ? score : 0);
 
     // Update Risk Badge & Description
-    riskBadge.textContent = risk_level;
-    riskBadge.className = `risk-badge risk-${risk_level.toLowerCase()}`;
+    riskBadge.textContent = safeRiskLevel;
+    riskBadge.className = `risk-badge risk-${safeRiskLevel.toLowerCase()}`;
 
     const riskDescriptions = {
       CRITICAL: 'Ação imediata requerida. Presença de wildcards globais ou exposição pública crítica.',
@@ -303,7 +421,7 @@ resource "aws_db_instance" "unencrypted_rds" {
       MEDIUM: 'Risco moderado. Desvio de boas práticas e ausência de restrições contextuais.',
       LOW: 'Baixo risco. Código aderente aos princípios de menor privilégio e DevSecOps.',
     };
-    riskDescription.textContent = riskDescriptions[risk_level] || '';
+    riskDescription.textContent = riskDescriptions[safeRiskLevel] || '';
 
     // Count severities
     let criticals = 0;
@@ -311,27 +429,29 @@ resource "aws_db_instance" "unencrypted_rds" {
     let mediums = 0;
     let lows = 0;
 
-    findings.forEach(f => {
-      const sev = (f.severity || '').toUpperCase();
-      if (sev === 'CRITICAL') criticals++;
-      else if (sev === 'HIGH') highs++;
-      else if (sev === 'MEDIUM') mediums++;
-      else if (sev === 'LOW') lows++;
+    const safeFindingsList = Array.isArray(findings) ? findings : [];
+
+    safeFindingsList.forEach(f => {
+      const itemSev = String(f.severity || '').toUpperCase().trim();
+      if (itemSev === 'CRITICAL') criticals++;
+      else if (itemSev === 'HIGH') highs++;
+      else if (itemSev === 'MEDIUM') mediums++;
+      else if (itemSev === 'LOW') lows++;
     });
 
     countCritical.textContent = criticals;
     countHigh.textContent = highs;
     countMedium.textContent = mediums;
     countLow.textContent = lows;
-    findingsCount.textContent = findings.length;
+    findingsCount.textContent = safeFindingsList.length;
 
     // Toggle Perfect Banner vs Findings List
-    if (findings.length === 0) {
+    if (safeFindingsList.length === 0) {
       perfectBanner.style.display = 'flex';
       findingsList.innerHTML = '';
     } else {
       perfectBanner.style.display = 'none';
-      renderFindingsList(findings);
+      renderFindingsList(safeFindingsList);
     }
   }
 
@@ -374,18 +494,20 @@ resource "aws_db_instance" "unencrypted_rds" {
     requestAnimationFrame(update);
   }
 
+  // Strict Anti-XSS Rendering of Findings (QA-004)
   function renderFindingsList(findings) {
     findingsList.innerHTML = '';
 
     findings.forEach(finding => {
       const card = document.createElement('div');
-      const sev = (finding.severity || 'LOW').toUpperCase();
-      card.className = `finding-card severity-${sev}`;
+      const rawSev = String(finding.severity || 'LOW').toUpperCase().trim();
+      const safeSev = ALLOWED_SEVERITIES.has(rawSev) ? rawSev : 'LOW';
+      card.className = `finding-card severity-${safeSev}`;
 
       card.innerHTML = `
         <div class="finding-card-header">
           <span class="finding-id-badge">${escapeHtml(finding.id)}</span>
-          <span class="finding-severity-badge severity-badge-${sev}">${sev}</span>
+          <span class="finding-severity-badge severity-badge-${safeSev}">${escapeHtml(safeSev)}</span>
         </div>
         <h4 class="finding-title">${escapeHtml(finding.title)}</h4>
         <p class="finding-desc">${escapeHtml(finding.description)}</p>
@@ -399,9 +521,10 @@ resource "aws_db_instance" "unencrypted_rds" {
     });
   }
 
+  // Type-coerced Defensive HTML Escape Function (QA-011)
   function escapeHtml(str) {
-    if (!str) return '';
-    return str
+    if (str === null || str === undefined) return '';
+    return String(str)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')

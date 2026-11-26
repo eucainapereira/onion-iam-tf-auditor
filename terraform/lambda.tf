@@ -24,6 +24,13 @@ resource "aws_lambda_function" "engine" {
   timeout          = 10
   memory_size      = 128
 
+  environment {
+    variables = {
+      ALLOWED_ORIGIN    = length(var.cors_allow_origins) > 0 ? var.cors_allow_origins[0] : "*"
+      MAX_PAYLOAD_BYTES = "524288"
+    }
+  }
+
   depends_on = [
     aws_cloudwatch_log_group.lambda_log_group
   ]

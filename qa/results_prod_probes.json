@@ -1,0 +1,326 @@
+{
+  "report_title": "Onion Auditor - Relatório de Sondas em Produção & Auditoria Frontend (Camada 4)",
+  "timestamp_utc": "2026-11-26T10:03:40.739761+00:00",
+  "environment": {
+    "python_version": "3.11.2",
+    "api_gateway_url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
+    "frontend_s3_url": "http://onion-auditor-frontend-654341980060-us-east-2.s3-website.us-east-2.amazonaws.com",
+    "working_directory": "/app/workspace/github/onion-iam-tf-auditor"
+  },
+  "production_probes": {
+    "summary": {
+      "total_probes": 9,
+      "passed_probes": 9,
+      "failed_probes": 0,
+      "success_rate_percent": 100.0,
+      "all_passed": true,
+      "total_requests_executed": 9,
+      "max_requests_budget": 12
+    },
+    "safety_enforcement": {
+      "max_allowed_requests": 12,
+      "inter_request_delay_seconds": 1.0,
+      "max_payload_limit_kb": 300.0,
+      "flood_prevention_engaged": true,
+      "information_leakage_detected": false
+    },
+    "targets": {
+      "api_gateway_url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
+      "frontend_s3_url": "http://onion-auditor-frontend-654341980060-us-east-2.s3-website.us-east-2.amazonaws.com"
+    },
+    "probes": [
+      {
+        "probe_id": "PROBE-01-CORS-OPTIONS",
+        "name": "Preflight CORS OPTIONS /audit",
+        "method": "OPTIONS",
+        "url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
+        "status_code": 204,
+        "expected_status": "200 ou 204",
+        "latency_ms": 53.48,
+        "cors_origin": "*",
+        "cors_methods": "OPTIONS,POST",
+        "cors_headers_compliant": true,
+        "leaks_detected": [],
+        "passed": true,
+        "verdict": "APROVADO: CORS corretamente configurado no API Gateway v2"
+      },
+      {
+        "probe_id": "PROBE-02-VALID-IAM",
+        "name": "Requisição Válida IAM (HTTP 200 e Schema JSON)",
+        "method": "POST",
+        "url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
+        "status_code": 200,
+        "expected_status": 200,
+        "latency_ms": 63.26,
+        "response_score": 90,
+        "response_risk_level": "LOW",
+        "findings_count": 1,
+        "schema_compliant": true,
+        "leaks_detected": [],
+        "passed": true,
+        "verdict": "APROVADO: Auditoria IAM executada com sucesso em produção"
+      },
+      {
+        "probe_id": "PROBE-03-VALID-TERRAFORM",
+        "name": "Requisição Válida Terraform (HTTP 200 e Schema JSON)",
+        "method": "POST",
+        "url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
+        "status_code": 200,
+        "expected_status": 200,
+        "latency_ms": 71.24,
+        "response_score": 75,
+        "response_risk_level": "MEDIUM",
+        "findings_count": 2,
+        "schema_compliant": true,
+        "leaks_detected": [],
+        "passed": true,
+        "verdict": "APROVADO: Auditoria Terraform executada com sucesso em produção"
+      },
+      {
+        "probe_id": "PROBE-04-MALFORMED-JSON",
+        "name": "JSON Malformado no Corpo da Requisição",
+        "method": "POST",
+        "url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
+        "status_code": 400,
+        "expected_status": 400,
+        "latency_ms": 68.22,
+        "controlled_error": true,
+        "leaks_detected": [],
+        "response_snippet": "{\"error\": \"JSON inválido no corpo da requisição: Unterminated string starting at: line 1 column 28 (char 27)\"}",
+        "passed": true,
+        "verdict": "APROVADO: Erro 400 controlado sem vazamento de stack trace"
+      },
+      {
+        "probe_id": "PROBE-05-METHOD-NOT-ALLOWED",
+        "name": "Método HTTP Não Permitido (GET /audit)",
+        "method": "GET",
+        "url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
+        "status_code": 404,
+        "expected_status": "404 ou 405",
+        "latency_ms": 55.61,
+        "controlled_error": true,
+        "leaks_detected": [],
+        "response_snippet": "{\"message\":\"Not Found\"}",
+        "passed": true,
+        "verdict": "APROVADO: Rota bloqueada com código HTTP controlado na borda"
+      },
+      {
+        "probe_id": "PROBE-06-MISSING-FIELDS",
+        "name": "Campos Obrigatórios Ausentes (content omitido)",
+        "method": "POST",
+        "url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
+        "status_code": 400,
+        "expected_status": 400,
+        "latency_ms": 69.16,
+        "controlled_error": true,
+        "leaks_detected": [],
+        "response_snippet": "{\"error\": \"O campo 'content' é obrigatório e deve conter uma string não vazia.\"}",
+        "passed": true,
+        "verdict": "APROVADO: Validação estrita de contrato retornou HTTP 400"
+      },
+      {
+        "probe_id": "PROBE-07-INVALID-AUDIT-TYPE",
+        "name": "Tipo de Auditoria Inválido (type='kubernetes')",
+        "method": "POST",
+        "url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
+        "status_code": 400,
+        "expected_status": 400,
+        "latency_ms": 68.75,
+        "controlled_error": true,
+        "leaks_detected": [],
+        "response_snippet": "{\"error\": \"Tipo de auditoria inválido: 'kubernetes'. Utilize 'iam' ou 'terraform'.\"}",
+        "passed": true,
+        "verdict": "APROVADO: Rejeição limpa de tipo não suportado com HTTP 400"
+      },
+      {
+        "probe_id": "PROBE-08-MODERATE-PAYLOAD",
+        "name": "Payload Moderado em Rede (~250 KB)",
+        "method": "POST",
+        "url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
+        "payload_bytes": 255108,
+        "payload_kb": 249.13,
+        "status_code": 200,
+        "expected_status": "200, 400 ou 413",
+        "latency_ms": 107.23,
+        "controlled_error": true,
+        "leaks_detected": [],
+        "passed": true,
+        "verdict": "APROVADO: Processamento estável com status 200 para 249.1 KB"
+      },
+      {
+        "probe_id": "PROBE-09-FRONTEND-AVAILABILITY",
+        "name": "Disponibilidade do Frontend SPA (S3 Static Hosting)",
+        "method": "GET",
+        "url": "http://onion-auditor-frontend-654341980060-us-east-2.s3-website.us-east-2.amazonaws.com",
+        "status_code": 200,
+        "expected_status": 200,
+        "content_type": "text/html",
+        "latency_ms": 40.73,
+        "html_verified": true,
+        "passed": true,
+        "verdict": "APROVADO: Frontend online, retornando HTML com status 200"
+      }
+    ]
+  },
+  "frontend_static_audit": {
+    "summary": {
+      "frontend_security_score": 100,
+      "security_posture": "GOOD",
+      "total_findings": 1,
+      "severity_breakdown": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 0,
+        "INFORMATIONAL": 1
+      },
+      "total_verified_controls": 18
+    },
+    "files_audited": [
+      "web/index.html",
+      "web/app.js",
+      "web/styles.css"
+    ],
+    "verified_controls": [
+      {
+        "id": "CTRL-DOM-CLEAR",
+        "category": "XSS & DOM Security",
+        "title": "Limpeza Segura de Container DOM",
+        "file": "web/app.js",
+        "description": "Linha 451: Uso de innerHTML estritamente para resetar container (''). Sem risco de injeção."
+      },
+      {
+        "id": "CTRL-DOM-CLEAR",
+        "category": "XSS & DOM Security",
+        "title": "Limpeza Segura de Container DOM",
+        "file": "web/app.js",
+        "description": "Linha 499: Uso de innerHTML estritamente para resetar container (''). Sem risco de injeção."
+      },
+      {
+        "id": "CTRL-ESCAPE-TYPE-SAFE",
+        "category": "XSS & DOM Security",
+        "title": "Função escapeHtml com Coerção Segura",
+        "file": "web/app.js",
+        "description": "escapeHtml coerge tipos não-string adequadamente."
+      },
+      {
+        "id": "CTRL-ESCAPE-CHARS-COMPLETE",
+        "category": "XSS & DOM Security",
+        "title": "Escape de Caracteres Críticos Completo",
+        "file": "web/app.js",
+        "description": "A função escapeHtml neutraliza &, <, >, \" e ' contra injeção de tags e atributos."
+      },
+      {
+        "id": "CTRL-SAFE-TEXT-SCOREDISPLAY",
+        "category": "XSS & DOM Security",
+        "title": "Uso Seguro de textContent em scoreDisplay",
+        "file": "web/app.js",
+        "description": "Atualização do elemento `scoreDisplay` utiliza estritamente `textContent`, prevenindo injeção HTML."
+      },
+      {
+        "id": "CTRL-SAFE-TEXT-RISKBADGE",
+        "category": "XSS & DOM Security",
+        "title": "Uso Seguro de textContent em riskBadge",
+        "file": "web/app.js",
+        "description": "Atualização do elemento `riskBadge` utiliza estritamente `textContent`, prevenindo injeção HTML."
+      },
+      {
+        "id": "CTRL-SAFE-TEXT-RISKDESCRIPTION",
+        "category": "XSS & DOM Security",
+        "title": "Uso Seguro de textContent em riskDescription",
+        "file": "web/app.js",
+        "description": "Atualização do elemento `riskDescription` utiliza estritamente `textContent`, prevenindo injeção HTML."
+      },
+      {
+        "id": "CTRL-SAFE-TEXT-COUNTCRITICAL",
+        "category": "XSS & DOM Security",
+        "title": "Uso Seguro de textContent em countCritical",
+        "file": "web/app.js",
+        "description": "Atualização do elemento `countCritical` utiliza estritamente `textContent`, prevenindo injeção HTML."
+      },
+      {
+        "id": "CTRL-SAFE-TEXT-FINDINGSCOUNT",
+        "category": "XSS & DOM Security",
+        "title": "Uso Seguro de textContent em findingsCount",
+        "file": "web/app.js",
+        "description": "Atualização do elemento `findingsCount` utiliza estritamente `textContent`, prevenindo injeção HTML."
+      },
+      {
+        "id": "CTRL-NO-INLINE-HANDLERS",
+        "category": "XSS & DOM Security",
+        "title": "Ausência Total de Inline Event Handlers no HTML",
+        "file": "web/index.html",
+        "description": "Zero ocorrências de atributos `on*` no HTML; todos os listeners são vinculados via Vanilla JS."
+      },
+      {
+        "id": "CTRL-CSP-ACTIVE",
+        "category": "XSS & DOM Security",
+        "title": "Content-Security-Policy Configurado no HTML",
+        "file": "web/index.html",
+        "description": "Meta tag CSP detectada protegendo o contexto de execução da página."
+      },
+      {
+        "id": "CTRL-NO-EVAL",
+        "category": "XSS & DOM Security",
+        "title": "Ausência de Funções Dinâmicas Perigosas (Zero eval/Function)",
+        "file": "web/app.js",
+        "description": "Código estritamente funcional sem o uso de `eval()`, `new Function()` ou passagem de strings para timers."
+      },
+      {
+        "id": "CTRL-FETCH-TIMEOUT",
+        "category": "Network Resilience",
+        "title": "Timeout / AbortController Presente no fetch",
+        "file": "web/app.js",
+        "description": "O fetch possui controle explícito de cancelamento por timeout."
+      },
+      {
+        "id": "CTRL-UI-FINALLY-RESET",
+        "category": "Network Resilience",
+        "title": "Restauração Garantida do Estado da UI no Bloco finally",
+        "file": "web/app.js",
+        "description": "O botão de auditoria e o spinner são resetados obrigatoriamente no bloco `finally`, prevenindo bloqueio permanente da UI após erros."
+      },
+      {
+        "id": "CTRL-INP-EMPTY-CHECK",
+        "category": "Input Validation",
+        "title": "Validação Preventiva de Entrada Vazia Antes do Envio",
+        "file": "web/app.js",
+        "description": "O editor valida `!content` rejeitando envios de payloads vazios ou compostos exclusivamente por espaços antes de disparar o fetch."
+      },
+      {
+        "id": "CTRL-INP-URL-CHECK",
+        "category": "Input Validation",
+        "title": "Verificação Mandatória de Configuração da URL da API",
+        "file": "web/app.js",
+        "description": "O frontend impede o disparo da auditoria caso nenhuma URL de endpoint válida esteja definida."
+      },
+      {
+        "id": "CTRL-CSS-NO-IMPORT",
+        "category": "CSS & Asset Security",
+        "title": "Ausência Total de @import no CSS",
+        "file": "web/styles.css",
+        "description": "A folha de estilos é autocontida e não realiza importações dinâmicas via `@import`."
+      },
+      {
+        "id": "CTRL-CSS-NO-URLS",
+        "category": "CSS & Asset Security",
+        "title": "Folha de Estilos Livre de Chamadas url() Externas",
+        "file": "web/styles.css",
+        "description": "Zero ocorrências de `url(...)` em `styles.css`. Impossibilidade de rastreamento ou exfiltração por CSS."
+      }
+    ],
+    "findings": [
+      {
+        "id": "FE-RES-001",
+        "category": "CSS & Asset Security",
+        "severity": "INFORMATIONAL",
+        "title": "Fontes Externas do Google Fonts sem Subresource Integrity (SRI)",
+        "file": "web/index.html",
+        "line": 11,
+        "snippet": "<link href=\"https://fonts.googleapis.com/css2?... rel=\"stylesheet\">",
+        "description": "O `index.html` importa fontes tipográficas de `fonts.googleapis.com` sem hashes de Subresource Integrity (SRI). Embora padrão para fontes dinâmicas do Google Fonts, representa uma dependência externa não imutável.",
+        "recommendation": "Para ambientes de segurança máxima, hospedar as fontes localmente no bundle estático do frontend."
+      }
+    ]
+  }
+}
