@@ -1,6 +1,7 @@
 """
-AWS Lambda entrypoint and HTTP API adapter for Onion Auditor.
+Onion Auditor — AWS Lambda Entrypoint & HTTP API Adapter (Camada 4)
 Hardened against giant payloads, recursion DoS, and sensitive information leaks.
+Zero external dependencies (Python 3.12 standard library only).
 """
 
 from __future__ import annotations

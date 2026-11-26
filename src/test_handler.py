@@ -481,6 +481,265 @@ resource "aws_db_instance" "secure_rds" {
         for h, v in CORS_HEADERS.items():
             self.assertEqual(res_413["headers"].get(h), v)
 
+    # --------------------------------------------------------------------------
+    # Camada 4 Dedicated Granular Audit Engine Tests
+    # --------------------------------------------------------------------------
+
+    def test_iam_wildcard_action_detection(self):
+        """Camada 4: Validates detection of wildcard Action ('*')."""
+        payload = {
+            "type": "iam",
+            "content": json.dumps({
+                "Version": "2012-10-17",
+                "Statement": [{
+                    "Effect": "Allow",
+                    "Action": "*",
+                    "Resource": "arn:aws:s3:::my-bucket/*",
+                    "Condition": {"Bool": {"aws:SecureTransport": "true"}}
+                }]
+            })
+        }
+        res = lambda_handler({"body": json.dumps(payload)})
+        self.assertEqual(res["statusCode"], 200)
+        body = json.loads(res["body"])
+        rule_ids = [f["id"] for f in body["findings"]]
+        self.assertIn("IAM-001", rule_ids)
+        self.assertEqual(body["risk_level"], "CRITICAL")
+        self.assertLessEqual(body["score"], 70)
+
+    def test_iam_wildcard_resource_detection(self):
+        """Camada 4: Validates detection of wildcard Resource ('*')."""
+        payload = {
+            "type": "iam",
+            "content": json.dumps({
+                "Version": "2012-10-17",
+                "Statement": [{
+                    "Effect": "Allow",
+                    "Action": "s3:GetObject",
+                    "Resource": "*",
+                    "Condition": {"Bool": {"aws:SecureTransport": "true"}}
+                }]
+            })
+        }
+        res = lambda_handler({"body": json.dumps(payload)})
+        self.assertEqual(res["statusCode"], 200)
+        body = json.loads(res["body"])
+        rule_ids = [f["id"] for f in body["findings"]]
+        self.assertIn("IAM-002", rule_ids)
+        self.assertEqual(body["risk_level"], "CRITICAL")
+        self.assertLessEqual(body["score"], 70)
+
+    def test_iam_not_action_detection(self):
+        """Camada 4: Validates detection of NotAction with Allow."""
+        payload = {
+            "type": "iam",
+            "content": json.dumps({
+                "Version": "2012-10-17",
+                "Statement": [{
+                    "Effect": "Allow",
+                    "NotAction": "iam:DeleteUser",
+                    "Resource": "arn:aws:s3:::my-bucket/*",
+                    "Condition": {"Bool": {"aws:SecureTransport": "true"}}
+                }]
+            })
+        }
+        res = lambda_handler({"body": json.dumps(payload)})
+        self.assertEqual(res["statusCode"], 200)
+        body = json.loads(res["body"])
+        rule_ids = [f["id"] for f in body["findings"]]
+        self.assertIn("IAM-007", rule_ids)
+        self.assertEqual(body["risk_level"], "CRITICAL")
+
+    def test_iam_passrole_without_condition_detection(self):
+        """Camada 4: Validates detection of iam:PassRole without condition."""
+        payload = {
+            "type": "iam",
+            "content": json.dumps({
+                "Version": "2012-10-17",
+                "Statement": [{
+                    "Effect": "Allow",
+                    "Action": "iam:PassRole",
+                    "Resource": "arn:aws:iam::123456789012:role/MyRole"
+                }]
+            })
+        }
+        res = lambda_handler({"body": json.dumps(payload)})
+        self.assertEqual(res["statusCode"], 200)
+        body = json.loads(res["body"])
+        rule_ids = [f["id"] for f in body["findings"]]
+        self.assertIn("IAM-009", rule_ids)
+        passrole_finding = next(f for f in body["findings"] if f["id"] == "IAM-009")
+        self.assertEqual(passrole_finding["severity"], "HIGH")
+
+    def test_iam_wildcard_principal_detection(self):
+        """Camada 4: Validates detection of wildcard Principal ('*')."""
+        payload = {
+            "type": "iam",
+            "content": json.dumps({
+                "Version": "2012-10-17",
+                "Statement": [{
+                    "Effect": "Allow",
+                    "Principal": "*",
+                    "Action": "s3:GetObject",
+                    "Resource": "arn:aws:s3:::shared-bucket/*",
+                    "Condition": {"Bool": {"aws:SecureTransport": "true"}}
+                }]
+            })
+        }
+        res = lambda_handler({"body": json.dumps(payload)})
+        self.assertEqual(res["statusCode"], 200)
+        body = json.loads(res["body"])
+        rule_ids = [f["id"] for f in body["findings"]]
+        self.assertIn("IAM-008", rule_ids)
+        self.assertEqual(body["risk_level"], "CRITICAL")
+
+    def test_terraform_public_s3_bucket_detection(self):
+        """Camada 4: Validates detection of public S3 buckets."""
+        payload = {
+            "type": "terraform",
+            "content": """
+resource "aws_s3_bucket" "open_bucket" {
+  bucket = "my-open-bucket"
+  acl    = "public-read"
+}
+"""
+        }
+        res = lambda_handler({"body": json.dumps(payload)})
+        self.assertEqual(res["statusCode"], 200)
+        body = json.loads(res["body"])
+        rule_ids = [f["id"] for f in body["findings"]]
+        self.assertIn("TF-002", rule_ids)
+
+    def test_terraform_security_group_sensitive_ports_detection(self):
+        """Camada 4: Validates detection of SG with 0.0.0.0/0 on sensitive ports (22, 3389, 5432, 3306)."""
+        payload = {
+            "type": "terraform",
+            "content": """
+resource "aws_security_group" "sensitive_sg" {
+  name = "sensitive-sg"
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 3389
+    to_port     = 3389
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 3306
+    to_port     = 3306
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+"""
+        }
+        res = lambda_handler({"body": json.dumps(payload)})
+        self.assertEqual(res["statusCode"], 200)
+        body = json.loads(res["body"])
+        rule_ids = [f["id"] for f in body["findings"]]
+        self.assertIn("TF-001", rule_ids)
+        self.assertEqual(body["risk_level"], "CRITICAL")
+
+    def test_terraform_unencrypted_ebs_detection(self):
+        """Camada 4: Validates detection of unencrypted EBS volume."""
+        payload = {
+            "type": "terraform",
+            "content": """
+resource "aws_ebs_volume" "test_ebs" {
+  availability_zone = "us-east-1a"
+  size              = 40
+  encrypted         = false
+}
+"""
+        }
+        res = lambda_handler({"body": json.dumps(payload)})
+        self.assertEqual(res["statusCode"], 200)
+        body = json.loads(res["body"])
+        rule_ids = [f["id"] for f in body["findings"]]
+        self.assertIn("TF-006", rule_ids)
+
+    def test_terraform_unencrypted_rds_detection(self):
+        """Camada 4: Validates detection of unencrypted RDS instance."""
+        payload = {
+            "type": "terraform",
+            "content": """
+resource "aws_db_instance" "test_rds" {
+  allocated_storage = 20
+  engine            = "postgres"
+  instance_class    = "db.t3.micro"
+  storage_encrypted = false
+}
+"""
+        }
+        res = lambda_handler({"body": json.dumps(payload)})
+        self.assertEqual(res["statusCode"], 200)
+        body = json.loads(res["body"])
+        rule_ids = [f["id"] for f in body["findings"]]
+        self.assertIn("TF-007", rule_ids)
+
+    def test_terraform_unencrypted_s3_detection(self):
+        """Camada 4: Validates detection of S3 bucket lacking SSE encryption."""
+        payload = {
+            "type": "terraform",
+            "content": """
+resource "aws_s3_bucket" "test_bucket" {
+  bucket = "my-unencrypted-bucket"
+}
+"""
+        }
+        res = lambda_handler({"body": json.dumps(payload)})
+        self.assertEqual(res["statusCode"], 200)
+        body = json.loads(res["body"])
+        rule_ids = [f["id"] for f in body["findings"]]
+        self.assertIn("TF-004", rule_ids)
+
+    def test_contract_response_structure_exact(self):
+        """Camada 4: Validates exact JSON response contract according to README.md."""
+        payload = {
+            "type": "iam",
+            "content": self.vulnerable_iam_json
+        }
+        res = lambda_handler({"body": json.dumps(payload)})
+        self.assertEqual(res["statusCode"], 200)
+        for h, v in CORS_HEADERS.items():
+            self.assertEqual(res["headers"].get(h), v)
+
+        body = json.loads(res["body"])
+        # Top-level contract keys
+        self.assertIn("score", body)
+        self.assertIn("risk_level", body)
+        self.assertIn("findings", body)
+        self.assertIsInstance(body["score"], int)
+        self.assertGreaterEqual(body["score"], 0)
+        self.assertLessEqual(body["score"], 100)
+        self.assertIn(body["risk_level"], ["LOW", "MEDIUM", "HIGH", "CRITICAL"])
+        self.assertIsInstance(body["findings"], list)
+
+        # Finding object contract keys
+        expected_keys = {"id", "title", "severity", "description", "recommendation"}
+        for finding in body["findings"]:
+            self.assertTrue(expected_keys.issubset(finding.keys()))
+            self.assertIn(finding["severity"], ["LOW", "MEDIUM", "HIGH", "CRITICAL"])
+            self.assertIsInstance(finding["id"], str)
+            self.assertIsInstance(finding["title"], str)
+            self.assertIsInstance(finding["description"], str)
+            self.assertIsInstance(finding["recommendation"], str)
+
 
 
 if __name__ == "__main__":
