@@ -1,6 +1,6 @@
 {
   "report_title": "Onion Auditor - Relatório de Sondas em Produção & Auditoria Frontend (Camada 4)",
-  "timestamp_utc": "2026-11-26T09:14:52.249209+00:00",
+  "timestamp_utc": "2026-11-26T09:58:21.178232+00:00",
   "environment": {
     "python_version": "3.11.2",
     "api_gateway_url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
@@ -164,17 +164,17 @@
   },
   "frontend_static_audit": {
     "summary": {
-      "frontend_security_score": 40,
-      "security_posture": "CONCERN",
-      "total_findings": 8,
+      "frontend_security_score": 100,
+      "security_posture": "GOOD",
+      "total_findings": 1,
       "severity_breakdown": {
         "CRITICAL": 0,
-        "HIGH": 1,
-        "MEDIUM": 2,
-        "LOW": 4,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 0,
         "INFORMATIONAL": 1
       },
-      "total_verified_controls": 15
+      "total_verified_controls": 18
     },
     "files_audited": [
       "web/index.html",
@@ -187,14 +187,21 @@
         "category": "XSS & DOM Security",
         "title": "Limpeza Segura de Container DOM",
         "file": "web/app.js",
-        "description": "Linha 331: Uso de innerHTML estritamente para resetar container (''). Sem risco de injeção."
+        "description": "Linha 451: Uso de innerHTML estritamente para resetar container (''). Sem risco de injeção."
       },
       {
         "id": "CTRL-DOM-CLEAR",
         "category": "XSS & DOM Security",
         "title": "Limpeza Segura de Container DOM",
         "file": "web/app.js",
-        "description": "Linha 378: Uso de innerHTML estritamente para resetar container (''). Sem risco de injeção."
+        "description": "Linha 499: Uso de innerHTML estritamente para resetar container (''). Sem risco de injeção."
+      },
+      {
+        "id": "CTRL-ESCAPE-TYPE-SAFE",
+        "category": "XSS & DOM Security",
+        "title": "Função escapeHtml com Coerção Segura",
+        "file": "web/app.js",
+        "description": "escapeHtml coerge tipos não-string adequadamente."
       },
       {
         "id": "CTRL-ESCAPE-CHARS-COMPLETE",
@@ -246,11 +253,25 @@
         "description": "Zero ocorrências de atributos `on*` no HTML; todos os listeners são vinculados via Vanilla JS."
       },
       {
+        "id": "CTRL-CSP-ACTIVE",
+        "category": "XSS & DOM Security",
+        "title": "Content-Security-Policy Configurado no HTML",
+        "file": "web/index.html",
+        "description": "Meta tag CSP detectada protegendo o contexto de execução da página."
+      },
+      {
         "id": "CTRL-NO-EVAL",
         "category": "XSS & DOM Security",
         "title": "Ausência de Funções Dinâmicas Perigosas (Zero eval/Function)",
         "file": "web/app.js",
         "description": "Código estritamente funcional sem o uso de `eval()`, `new Function()` ou passagem de strings para timers."
+      },
+      {
+        "id": "CTRL-FETCH-TIMEOUT",
+        "category": "Network Resilience",
+        "title": "Timeout / AbortController Presente no fetch",
+        "file": "web/app.js",
+        "description": "O fetch possui controle explícito de cancelamento por timeout."
       },
       {
         "id": "CTRL-UI-FINALLY-RESET",
@@ -289,83 +310,6 @@
       }
     ],
     "findings": [
-      {
-        "id": "FE-XSS-001",
-        "category": "XSS & DOM Injection",
-        "severity": "HIGH",
-        "title": "Interpolação de Severidade Não Escapada em innerHTML",
-        "file": "web/app.js",
-        "line": 385,
-        "snippet": "card.innerHTML = `",
-        "description": "A variável `sev` é derivada de `(finding.severity || 'LOW').toUpperCase()` e interpolada diretamente no innerHTML (`class=\"...-${sev}\"` e `>${sev}</span>`) sem passar pela função `escapeHtml()`. Como tags e atributos HTML são insensíveis a maiúsculas, caso uma severidade contenha payloads como `<IMG SRC=X ONERROR=ALERT(1)>`, o navegador interpretará e executará como HTML/JavaScript válido.",
-        "recommendation": "Aplicar sanitização mandatória em `sev`: validar contra uma lista permitida estrita (['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']) com fallback defensivo para 'LOW', ou usar `escapeHtml(sev)`."
-      },
-      {
-        "id": "FE-XSS-002",
-        "category": "XSS & DOM Injection",
-        "severity": "LOW",
-        "title": "Função escapeHtml Sem Coerção de Tipo Defensiva",
-        "file": "web/app.js",
-        "line": 402,
-        "snippet": "function escapeHtml(str) { ... }",
-        "description": "A função `escapeHtml(str)` assume que o argumento é sempre uma string e executa `str.replace()`. Se a API retornar um campo numérico ou booleano para id ou título, ocorrerá uma exceção `TypeError: str.replace is not a function`, travando a renderização dos achados.",
-        "recommendation": "Adicionar coerção explícita de tipo: `str = String(str || '');` antes dos replaces."
-      },
-      {
-        "id": "FE-CSP-001",
-        "category": "XSS & DOM Injection",
-        "severity": "MEDIUM",
-        "title": "Ausência de Meta Tag Content-Security-Policy (CSP)",
-        "file": "web/index.html",
-        "line": 5,
-        "snippet": "<meta name=\"viewport\" ...>",
-        "description": "O arquivo `web/index.html` não define uma meta tag de Content-Security-Policy (CSP). A ausência de CSP remove a camada de defesa em profundidade (Defense-in-Depth) contra execução de scripts não autorizados e exfiltração de dados no caso de uma injeção XSS ser bem-sucedida no navegador.",
-        "recommendation": "Adicionar meta tag CSP restritiva no <head>: `<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'self'; script-src 'self'; style-src 'self' fonts.googleapis.com 'unsafe-inline'; font-src fonts.gstatic.com; connect-src https://*.execute-api.us-east-2.amazonaws.com;\">`."
-      },
-      {
-        "id": "FE-NET-001",
-        "category": "Network Resilience",
-        "severity": "MEDIUM",
-        "title": "Ausência de Timeout ou AbortController no fetch()",
-        "file": "web/app.js",
-        "line": 255,
-        "snippet": "const response = await fetch(targetUrl, {",
-        "description": "A chamada assíncrona `fetch(targetUrl, ...)` não especifica um sinal de abortamento ou timeout (`signal: AbortSignal.timeout(10000)` ou `AbortController`). Se a conexão com o API Gateway v2 oscilar, sofrer perda de pacotes ou travar, o botão 'Executar Auditoria' permanecerá desativado com spinner ativo indefinidamente, bloqueando a interface do usuário.",
-        "recommendation": "Implementar timeout defensivo com `signal: AbortSignal.timeout(15000)` ou `AbortController` com temporizador de 15 segundos para cancelar requisições estagnadas e informar o usuário."
-      },
-      {
-        "id": "FE-NET-002",
-        "category": "Network Resilience",
-        "severity": "LOW",
-        "title": "Uso de alert() Nativo para Exibição de Falhas de Rede",
-        "file": "web/app.js",
-        "line": 236,
-        "snippet": "alert('Por favor, insira o código IAM ou Terraform a ser auditado.');",
-        "description": "Erros de conexão ou falhas de requisição são comunicados através do método modal nativo `alert()`. O `alert()` bloqueia a thread principal do navegador, degrada a experiência do usuário e impede que leitores de tela ou suítes de automação capturem o erro de forma assíncrona.",
-        "recommendation": "Substituir `alert()` por um banner visual ou componente de notificação inline/toast acessível no DOM."
-      },
-      {
-        "id": "FE-NET-004",
-        "category": "Network Resilience",
-        "severity": "LOW",
-        "title": "Desserialização JSON Precipitada sem Validação de Content-Type",
-        "file": "web/app.js",
-        "line": 266,
-        "snippet": "const data = await response.json();",
-        "description": "O código executa `await response.json()` antes de verificar `response.ok`. Se um proxy intermediário, WAF ou CloudFront retornar uma página de erro em HTML (ex: 502 Bad Gateway ou 504 Gateway Timeout), o parser lançará `SyntaxError: Unexpected token < in JSON`, ofuscando a causa raiz da falha de rede.",
-        "recommendation": "Inspecionar `response.headers.get('content-type')` ou capturar erros de parse antes de prosseguir."
-      },
-      {
-        "id": "FE-INP-002",
-        "category": "Input Validation",
-        "severity": "LOW",
-        "title": "Ausência de Validação de Protocolo na URL Manual da API",
-        "file": "web/app.js",
-        "line": 168,
-        "snippet": "const val = apiUrlInput.value.trim();",
-        "description": "O input manual de configuração da API (`apiUrlInput`) aceita qualquer string sem validar se o esquema pertence a `https://` (ou `http://`). Isso permite a inserção de strings malformadas ou esquemas incompatíveis pelo operador.",
-        "recommendation": "Validar a URL com `try { const u = new URL(val); if (!['http:', 'https:'].includes(u.protocol)) ... }`."
-      },
       {
         "id": "FE-RES-001",
         "category": "CSS & Asset Security",
