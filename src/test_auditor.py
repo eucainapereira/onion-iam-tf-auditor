@@ -440,6 +440,107 @@ resource "aws_db_instance" "db2" {
         res_rds2 = audit_terraform(hcl_rds_false)
         self.assertIn("TF-007", [f["id"] for f in res_rds2["findings"]])
 
+    def test_iam_principal_list_whitespace_wildcard(self):
+        """Validates detection of wildcard with whitespace inside Principal list."""
+        policy = json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"AWS": ["arn:aws:iam::123456789012:role/legit", " * "]},
+                    "Action": "s3:GetObject",
+                    "Resource": "arn:aws:s3:::bucket/*",
+                }
+            ],
+        })
+        res = audit_iam(policy)
+        rule_ids = [f["id"] for f in res["findings"]]
+        self.assertIn("IAM-008", rule_ids)
+
+    def test_iam_passrole_empty_service_condition(self):
+        """Validates that iam:PassedToService mapped to empty string or empty list is rejected."""
+        policy_empty_str = json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Action": "iam:PassRole",
+                    "Resource": "*",
+                    "Condition": {"StringEquals": {"iam:PassedToService": "   "}},
+                }
+            ],
+        })
+        res1 = audit_iam(policy_empty_str)
+        self.assertIn("IAM-009", [f["id"] for f in res1["findings"]])
+
+        policy_empty_list = json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Action": "iam:PassRole",
+                    "Resource": "*",
+                    "Condition": {"StringEquals": {"iam:PassedToService": []}},
+                }
+            ],
+        })
+        res2 = audit_iam(policy_empty_list)
+        self.assertIn("IAM-009", [f["id"] for f in res2["findings"]])
+
+    def test_tf_ingress_swapped_ports_and_ipv6_attribute(self):
+        """Validates detection of sensitive ports when from_port > to_port and with ipv6_cidr_blocks."""
+        hcl_swapped = """
+resource "aws_security_group" "swapped_sg" {
+  name = "swapped-sg"
+  ingress {
+    from_port   = 25
+    to_port     = 20
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+"""
+        res_swapped = audit_terraform(hcl_swapped)
+        self.assertIn("TF-001", [f["id"] for f in res_swapped["findings"]])
+
+        hcl_ipv6 = """
+resource "aws_security_group" "ipv6_sg" {
+  name = "ipv6-sg"
+  ingress {
+    from_port        = 22
+    to_port          = 22
+    protocol         = "tcp"
+    ipv6_cidr_blocks = ["::/0"]
+  }
+}
+"""
+        res_ipv6 = audit_terraform(hcl_ipv6)
+        self.assertIn("TF-001", [f["id"] for f in res_ipv6["findings"]])
+
+    def test_tf_quoted_encryption_and_acl_whitespace(self):
+        """Validates detection of quoted booleans in encryption and whitespace in S3 ACL."""
+        hcl = """
+resource "aws_ebs_volume" "quoted_ebs" {
+  availability_zone = "us-east-1a"
+  size              = 10
+  encrypted         = "false"
+}
+resource "aws_db_instance" "quoted_db" {
+  instance_class    = "db.t3.micro"
+  engine            = "postgres"
+  storage_encrypted = "false"
+}
+resource "aws_s3_bucket" "spaced_bucket" {
+  bucket = "spaced-acl-bucket"
+  acl    = "  public-read  "
+}
+"""
+        res = audit_terraform(hcl)
+        rule_ids = [f["id"] for f in res["findings"]]
+        self.assertIn("TF-006", rule_ids)
+        self.assertIn("TF-007", rule_ids)
+        self.assertIn("TF-002", rule_ids)
+
 
 if __name__ == "__main__":
     unittest.main()

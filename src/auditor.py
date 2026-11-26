@@ -20,7 +20,7 @@ SEVERITY_WEIGHTS: Dict[str, int] = {
 SENSITIVE_PORTS: List[int] = [22, 3389, 5432, 3306]
 
 PUBLIC_S3_ACL_PATTERN = re.compile(
-    r'acl\s*=\s*["\'](public-(?:read|read-write)|authenticated-read)["\']',
+    r'acl\s*=\s*["\']\s*(public-(?:read|read-write)|authenticated-read)\s*["\']',
     re.IGNORECASE,
 )
 
@@ -58,12 +58,30 @@ def _normalize_iam_dict_keys(d: Any) -> Any:
 
 
 def _to_list(val: Any) -> List[str]:
-    """Converts a string or list of items to a list of strings."""
+    """Converts a string, list, tuple or set of items to a list of strings."""
     if isinstance(val, str):
         return [val]
-    elif isinstance(val, list):
+    elif isinstance(val, (list, tuple, set)):
         return [str(item) for item in val if item is not None]
     return []
+
+
+def _has_valid_passed_to_service(cond: Any) -> bool:
+    """Recursively checks if Condition contains non-empty iam:PassedToService restriction."""
+    if isinstance(cond, dict):
+        for k, v in cond.items():
+            if str(k).strip().lower() == "iam:passedtoservice":
+                if isinstance(v, str) and v.strip():
+                    return True
+                elif isinstance(v, (list, tuple, set)) and any(isinstance(x, str) and x.strip() for x in v):
+                    return True
+            elif _has_valid_passed_to_service(v):
+                return True
+    elif isinstance(cond, (list, tuple, set)):
+        for item in cond:
+            if _has_valid_passed_to_service(item):
+                return True
+    return False
 
 
 def calculate_score_and_risk(findings: List[Dict[str, Any]]) -> Tuple[int, str]:
@@ -187,22 +205,17 @@ def audit_iam(content: str) -> Dict[str, Any]:
         principal = stmt.get("Principal")
         if principal:
             is_wildcard_principal = False
-            if principal == "*":
+            if isinstance(principal, str) and principal.strip() == "*":
                 is_wildcard_principal = True
             elif isinstance(principal, dict):
                 for _, p_val in principal.items():
-                    if p_val == "*":
+                    if isinstance(p_val, str) and p_val.strip() == "*":
                         is_wildcard_principal = True
                         break
-                    elif isinstance(p_val, list) and "*" in p_val:
+                    elif isinstance(p_val, (list, tuple, set)) and any(isinstance(x, str) and x.strip() == "*" for x in p_val):
                         is_wildcard_principal = True
                         break
-                    elif isinstance(p_val, str) and p_val.strip() == "*":
-                        is_wildcard_principal = True
-                        break
-            elif isinstance(principal, list) and "*" in principal:
-                is_wildcard_principal = True
-            elif isinstance(principal, str) and principal.strip() == "*":
+            elif isinstance(principal, (list, tuple, set)) and any(isinstance(x, str) and x.strip() == "*" for x in principal):
                 is_wildcard_principal = True
 
             if is_wildcard_principal:
@@ -287,9 +300,7 @@ def audit_iam(content: str) -> Dict[str, Any]:
             condition = stmt.get("Condition")
             condition_valid = False
             if isinstance(condition, dict) and len(condition) > 0:
-                cond_str = json.dumps(condition).lower()
-                if "iam:passedtoservice" in cond_str:
-                    condition_valid = True
+                condition_valid = _has_valid_passed_to_service(condition)
 
             if not condition_valid:
                 findings.append(
@@ -381,7 +392,7 @@ def audit_iam(content: str) -> Dict[str, Any]:
 
 
 def _strip_hcl_comments(content: str) -> str:
-    """Removes single-line and multi-line comments from HCL content."""
+    """Removes single-line and multi-line comments from HCL content while preserving string literals."""
     # Remove block comments /* ... */
     content = re.sub(r"/\*.*?\*/", "", content, flags=re.DOTALL)
     # Remove line comments starting with // or #
@@ -390,6 +401,7 @@ def _strip_hcl_comments(content: str) -> str:
         # Keep quotes intact while stripping comments
         clean_line = ""
         in_quote = False
+        quote_char = None
         escape = False
         i = 0
         while i < len(line):
@@ -400,8 +412,13 @@ def _strip_hcl_comments(content: str) -> str:
             elif c == "\\":
                 clean_line += c
                 escape = True
-            elif c == '"':
-                in_quote = not in_quote
+            elif not in_quote and c in ('"', "'"):
+                in_quote = True
+                quote_char = c
+                clean_line += c
+            elif in_quote and c == quote_char:
+                in_quote = False
+                quote_char = None
                 clean_line += c
             elif not in_quote:
                 if c == "#" or (c == "/" and i + 1 < len(line) and line[i + 1] == "/"):
@@ -417,10 +434,11 @@ def _strip_hcl_comments(content: str) -> str:
 def _extract_hcl_resources(clean_content: str) -> List[Dict[str, str]]:
     """
     Extracts top-level resource blocks using brace-counting parsing.
+    Supports multiline whitespace, tabs, and newlines between tokens.
     Returns list of dicts: {'type': str, 'name': str, 'body': str}
     """
     resources = []
-    pattern = re.compile(r'resource\s+"([a-zA-Z0-9_\-]+)"\s+"([a-zA-Z0-9_\-]+)"\s*\{')
+    pattern = re.compile(r'resource\s+["\']([a-zA-Z0-9_\-]+)["\']\s+["\']([a-zA-Z0-9_\-]+)["\']\s*\{')
 
     for match in pattern.finditer(clean_content):
         res_type = match.group(1)
@@ -456,7 +474,7 @@ def _extract_hcl_resources(clean_content: str) -> List[Dict[str, str]]:
 def _extract_blocks(body: str, block_name: str) -> List[str]:
     """Extracts nested blocks like ingress { ... } or tags = { ... } from a resource body."""
     blocks = []
-    pattern = re.compile(rf'{block_name}\s*\{{')
+    pattern = re.compile(rf'{block_name}\s*(?:=\s*)?(?:\[\s*)?\{{')
     for match in pattern.finditer(body):
         start_brace = match.end() - 1
         depth = 0
@@ -542,8 +560,8 @@ def audit_terraform(content: str) -> Dict[str, Any]:
 
         # Rule TF-006: EBS Volume Encryption
         if res_type == "aws_ebs_volume":
-            has_encryption = re.search(r'encrypted\s*=\s*true', body, re.IGNORECASE)
-            is_explicit_false = re.search(r'encrypted\s*=\s*false', body, re.IGNORECASE)
+            has_encryption = re.search(r'encrypted\s*=\s*["\']?true["\']?', body, re.IGNORECASE)
+            is_explicit_false = re.search(r'encrypted\s*=\s*["\']?false["\']?', body, re.IGNORECASE)
             if is_explicit_false or not has_encryption:
                 findings.append(
                     _create_finding(
@@ -558,8 +576,8 @@ def audit_terraform(content: str) -> Dict[str, Any]:
         elif res_type == "aws_instance":
             block_devices = _extract_blocks(body, "root_block_device") + _extract_blocks(body, "ebs_block_device")
             for bd in block_devices:
-                has_encryption = re.search(r'encrypted\s*=\s*true', bd, re.IGNORECASE)
-                is_explicit_false = re.search(r'encrypted\s*=\s*false', bd, re.IGNORECASE)
+                has_encryption = re.search(r'encrypted\s*=\s*["\']?true["\']?', bd, re.IGNORECASE)
+                is_explicit_false = re.search(r'encrypted\s*=\s*["\']?false["\']?', bd, re.IGNORECASE)
                 if is_explicit_false or not has_encryption:
                     findings.append(
                         _create_finding(
@@ -572,9 +590,9 @@ def audit_terraform(content: str) -> Dict[str, Any]:
                     )
 
         # Rule TF-007: RDS Storage Encryption
-        if res_type == "aws_db_instance":
-            has_storage_enc = re.search(r'storage_encrypted\s*=\s*true', body, re.IGNORECASE)
-            is_explicit_false = re.search(r'storage_encrypted\s*=\s*false', body, re.IGNORECASE)
+        if res_type in ("aws_db_instance", "aws_rds_cluster"):
+            has_storage_enc = re.search(r'storage_encrypted\s*=\s*["\']?true["\']?', body, re.IGNORECASE)
+            is_explicit_false = re.search(r'storage_encrypted\s*=\s*["\']?false["\']?', body, re.IGNORECASE)
             if is_explicit_false or not has_storage_enc:
                 findings.append(
                     _create_finding(
@@ -670,23 +688,37 @@ def audit_terraform(content: str) -> Dict[str, Any]:
 
 
 def _check_ingress_rule(rule_body: str, sg_name: str, findings: List[Dict[str, Any]]) -> None:
-    """Checks an ingress rule body for 0.0.0.0/0 on sensitive ports (22, 3389, 5432, 3306)."""
+    """Checks an ingress rule body for 0.0.0.0/0 or ::/0 on sensitive ports (22, 3389, 5432, 3306)."""
     has_world_cidr = False
-    cidr_match = re.search(r'cidr_blocks\s*=\s*\[(.*?)\]', rule_body, re.DOTALL)
+    cidr_match = re.search(r'(?:ipv6_)?cidr_blocks\s*=\s*\[(.*?)\]', rule_body, re.DOTALL)
     if cidr_match:
         cidr_content = cidr_match.group(1)
-        if '"0.0.0.0/0"' in cidr_content or "'0.0.0.0/0'" in cidr_content or '"::/0"' in cidr_content:
+        if (
+            re.search(r'["\']\s*(?:0\.0\.0\.0/0|::/0)\s*["\']', cidr_content)
+            or '"0.0.0.0/0"' in cidr_content
+            or "'0.0.0.0/0'" in cidr_content
+            or '"::/0"' in cidr_content
+            or "'::/0'" in cidr_content
+        ):
             has_world_cidr = True
+    elif re.search(r'(?:cidr_blocks|ipv6_cidr_blocks)\s*=\s*["\']\s*(?:0\.0\.0\.0/0|::/0)\s*["\']', rule_body):
+        has_world_cidr = True
 
     if not has_world_cidr:
         return
 
-    from_port_m = re.search(r'from_port\s*=\s*(-?\d+)', rule_body)
-    to_port_m = re.search(r'to_port\s*=\s*(-?\d+)', rule_body)
+    from_port_m = re.search(r'from_port\s*=\s*["\']?(-?\d+)["\']?', rule_body)
+    to_port_m = re.search(r'to_port\s*=\s*["\']?(-?\d+)["\']?', rule_body)
 
     if from_port_m and to_port_m:
         from_port = int(from_port_m.group(1))
         to_port = int(to_port_m.group(1))
+    elif from_port_m and not to_port_m:
+        from_port = int(from_port_m.group(1))
+        to_port = from_port
+    elif to_port_m and not from_port_m:
+        to_port = int(to_port_m.group(1))
+        from_port = to_port
     else:
         from_port = 0
         to_port = 65535
@@ -696,8 +728,10 @@ def _check_ingress_rule(rule_body: str, sg_name: str, findings: List[Dict[str, A
     if (from_port == 0 and to_port == 0) or (from_port == -1 and to_port == -1):
         exposed_ports = list(SENSITIVE_PORTS)
     else:
+        low_port = min(from_port, to_port)
+        high_port = max(from_port, to_port)
         for p in SENSITIVE_PORTS:
-            if from_port <= p <= to_port:
+            if low_port <= p <= high_port:
                 exposed_ports.append(p)
 
     if exposed_ports:
