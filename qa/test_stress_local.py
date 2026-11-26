@@ -516,6 +516,34 @@ class TestDeeplyNestedJSON(StressTestBase):
         self.assertIn("error", body)
         self.assertIn("recursion", body["error"].lower())
 
+    def test_nst_recursion_limit_600_iam_objects(self) -> None:
+        """TC-NST-REC-600-IAM-OBJ: 600 níveis de objetos aninhados no campo content de IAM, disparando RecursionError."""
+        nested_content = '{"Statement":' * 600 + '[]' + '}' * 600
+        event = {"body": json.dumps({"type": "iam", "content": nested_content})}
+        _, body = self.invoke_handler_measured(
+            scenario_id="TC-NST-REC-600-IAM-OBJ",
+            category="Deeply Nested JSON (Recursion Limit)",
+            description="Disparo de RecursionError via 600 níveis de aninhamento de objetos em política IAM, tratado com HTTP 400",
+            event=event,
+            expected_status=400,
+        )
+        self.assertIn("error", body)
+        self.assertIn("recursion", body["error"].lower())
+
+    def test_nst_recursion_limit_600_iam_arrays(self) -> None:
+        """TC-NST-REC-600-IAM-ARR: 600 níveis de listas aninhadas no campo content de IAM, disparando RecursionError."""
+        nested_content = '{"Statement":' + '[' * 600 + ']' * 600 + '}'
+        event = {"body": json.dumps({"type": "iam", "content": nested_content})}
+        _, body = self.invoke_handler_measured(
+            scenario_id="TC-NST-REC-600-IAM-ARR",
+            category="Deeply Nested JSON (Recursion Limit)",
+            description="Disparo de RecursionError via 600 níveis de aninhamento de arrays em política IAM, tratado com HTTP 400",
+            event=event,
+            expected_status=400,
+        )
+        self.assertIn("error", body)
+        self.assertIn("recursion", body["error"].lower())
+
 
 class TestContractFuzzing(StressTestBase):
     """Cenário 3: Fuzzing de Contrato, Entradas Malformadas, Base64 e Unicode."""
@@ -925,6 +953,75 @@ resource "aws_security_group" "sg_redos" {{
             expected_status=200,
         )
         self.assertEqual(body.get("status"), "ok")
+
+    def test_fuz_event_none(self) -> None:
+        """TC-FUZ-30: Evento Lambda recebido como None."""
+        event = None
+        _, body = self.invoke_handler_measured(
+            scenario_id="TC-FUZ-EVENT-NONE",
+            category="Contract Fuzzing",
+            description="Invocação do handler recebendo None como evento Lambda",
+            event=event,
+            expected_status=400,
+        )
+        self.assertIn("error", body)
+
+    def test_fuz_control_characters_tf(self) -> None:
+        """TC-FUZ-31: Caracteres de controle ASCII (\x01\x07\x0b\x1f) em manifesto Terraform HCL."""
+        raw_content = 'resource "aws_security_group" "sg_ctrl" {\n  name = "sg_\x01\x07\x0b\x1ftest"\n  ingress {\n    from_port = 80\n    to_port = 80\n    protocol = "tcp"\n    cidr_blocks = ["10.0.0.0/16"]\n  }\n}'
+        event = {"body": json.dumps({"type": "terraform", "content": raw_content})}
+        _, body = self.invoke_handler_measured(
+            scenario_id="TC-FUZ-CONTROL-CHARS-TF",
+            category="Contract Fuzzing (Unicode & Malformed Controls)",
+            description="Sanitização de caracteres de controle ASCII em manifesto Terraform HCL",
+            event=event,
+            expected_status=200,
+        )
+        self.assertIn("score", body)
+
+
+class TestPayloadSizeDefense(StressTestBase):
+    """Cenário 4: Validação de Limite de Payload Estrito (512 KB / HTTP 413)."""
+
+    def test_str_limit_exceeded_512kb(self) -> None:
+        """TC-STR-LIMIT-EXCEEDED-512KB: Rejeição imediata de payload superior a 512 KB com HTTP 413."""
+        saved_limit = handler.MAX_PAYLOAD_BYTES
+        try:
+            handler.MAX_PAYLOAD_BYTES = 512 * 1024
+            # 525 KB payload
+            large_content = "X" * (525 * 1024)
+            event = {"body": json.dumps({"type": "iam", "content": large_content})}
+            _, body = self.invoke_handler_measured(
+                scenario_id="TC-STR-LIMIT-EXCEEDED-512KB",
+                category="Payload Size Defense",
+                description="Submissão de payload de 525 KB com limite estrito de 512 KB retornando HTTP 413",
+                event=event,
+                expected_status=413,
+            )
+            self.assertIn("error", body)
+            self.assertIn("512 kb", body["error"].lower())
+        finally:
+            handler.MAX_PAYLOAD_BYTES = saved_limit
+
+    def test_str_limit_exceeded_b64(self) -> None:
+        """TC-STR-LIMIT-EXCEEDED-B64: Rejeição de payload Base64 decodificado superior a 512 KB com HTTP 413."""
+        saved_limit = handler.MAX_PAYLOAD_BYTES
+        try:
+            handler.MAX_PAYLOAD_BYTES = 512 * 1024
+            raw_data = "Y" * (530 * 1024)
+            b64_str = base64.b64encode(raw_data.encode("utf-8")).decode("utf-8")
+            event = {"body": b64_str, "isBase64Encoded": True}
+            _, body = self.invoke_handler_measured(
+                scenario_id="TC-STR-LIMIT-EXCEEDED-B64",
+                category="Payload Size Defense",
+                description="Payload Base64 com dados decodificados superiores a 512 KB retornando HTTP 413",
+                event=event,
+                expected_status=413,
+            )
+            self.assertIn("error", body)
+            self.assertIn("512 kb", body["error"].lower())
+        finally:
+            handler.MAX_PAYLOAD_BYTES = saved_limit
 
 
 def tearDownModule() -> None:
