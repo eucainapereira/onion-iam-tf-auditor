@@ -1,7 +1,7 @@
 {
   "report_title": "Onion Auditor - Verificação de Release v1.0.0 em Produção & Pós-Hardening",
   "release_version": "v1.0.0",
-  "timestamp_utc": "2026-11-26T19:22:14.100325+00:00",
+  "timestamp_utc": "2026-11-27T05:38:08.525013+00:00",
   "environment": {
     "python_runtime": "3.11.2",
     "platform": "linux",
@@ -27,7 +27,7 @@
       "method": "OPTIONS",
       "url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
       "status_code": 204,
-      "latency_ms": 55.13,
+      "latency_ms": 63.41,
       "cors_origin": "*",
       "cors_methods": "OPTIONS,POST",
       "cors_headers": "authorization,content-type",
@@ -46,7 +46,7 @@
       "method": "POST",
       "url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
       "status_code": 200,
-      "latency_ms": 81.95,
+      "latency_ms": 331.78,
       "score": 100,
       "risk_level": "LOW",
       "findings_count": 0,
@@ -67,7 +67,7 @@
       "method": "POST",
       "url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
       "status_code": 200,
-      "latency_ms": 90.67,
+      "latency_ms": 98.18,
       "score": 100,
       "risk_level": "LOW",
       "findings_count": 0,
@@ -88,7 +88,7 @@
       "method": "POST",
       "url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
       "status_code": 200,
-      "latency_ms": 71.89,
+      "latency_ms": 127.91,
       "score": 45,
       "risk_level": "CRITICAL",
       "detected_findings": [
@@ -114,7 +114,7 @@
       "method": "POST",
       "url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
       "status_code": 200,
-      "latency_ms": 82.5,
+      "latency_ms": 67.98,
       "score": 65,
       "risk_level": "CRITICAL",
       "detected_findings": [
@@ -141,7 +141,7 @@
       "payload_bytes": 614380,
       "payload_kb": 599.98,
       "status_code": 413,
-      "latency_ms": 169.83,
+      "latency_ms": 136.49,
       "response_snippet": "{\"error\": \"Corpo da requisição excede o limite máximo permitido de 512 KB.\"}",
       "assertions": {
         "http_status_413": true,
@@ -157,7 +157,7 @@
       "method": "POST",
       "url": "https://p73sp8ai87.execute-api.us-east-2.amazonaws.com/audit",
       "status_code": 400,
-      "latency_ms": 67.68,
+      "latency_ms": 71.61,
       "response_snippet": "{\"error\": \"JSON inválido no corpo da requisição: Unterminated string starting at: line 1 column 28 (char 27)\"}",
       "leaks_detected": [],
       "assertions": {
@@ -174,7 +174,7 @@
       "method": "GET",
       "url": "http://onion-auditor-frontend-654341980060-us-east-2.s3-website.us-east-2.amazonaws.com",
       "status_code": 200,
-      "latency_ms": 42.1,
+      "latency_ms": 60.66,
       "content_length": 9334,
       "assertions": {
         "http_status_200": true,
@@ -191,7 +191,7 @@
       "method": "GET",
       "url": "http://onion-auditor-frontend-654341980060-us-east-2.s3-website.us-east-2.amazonaws.com/app.js",
       "status_code": 200,
-      "latency_ms": 44.33,
+      "latency_ms": 57.72,
       "assertions": {
         "http_status_200": true,
         "escape_function_defined": true,
