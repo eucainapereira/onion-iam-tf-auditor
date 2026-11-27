@@ -1,7 +1,8 @@
 /* ==============================================================================
-   ONION AUDITOR — CYBER GOVERNANCE DARK STYLESHEET
-   Layer 4: Typography, Component Craftsmanship & Mobile-First Responsiveness
+   ONION AUDITOR — CYBER GOVERNANCE DARK NEUMORPHIC STYLESHEET
+   Theme: Soft UI Dark Neumorphism on Monochromatic Continuous Slate (#1e222a)
    Architecture: Zero-Build Modern CSS3 / 100% S3+CloudFront Static Compatible
+   Security & Hardening: 100% compliant with zero external CSS imports and zero url calls
    Safe System Font Fallbacks: -apple-system, sans-serif, monospace
    ============================================================================== */
 
@@ -56,6 +57,7 @@ button:active,
 .tab-btn:active,
 .alert-close:active {
   transform: scale(0.98);
+  box-shadow: var(--neu-pressed) !important;
 }
 
 @media (max-width: 768px) {
@@ -74,17 +76,17 @@ button:active,
 }
 
 /* ==============================================================================
-   HEADER
+   HEADER (EXTRUDED NEUMORPHIC SURFACE)
    ============================================================================== */
 .app-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: var(--space-4) var(--space-6);
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-neu-base);
+  border: var(--neu-border-hairline);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-rim), var(--shadow-md);
+  box-shadow: var(--neu-extruded);
   flex-wrap: wrap;
   gap: var(--space-4);
 }
@@ -142,18 +144,21 @@ button:active,
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
+  box-shadow: var(--neu-extruded-sm);
 }
 
 .badge-finops {
-  background-color: rgba(16, 185, 129, 0.12);
+  background-color: var(--bg-neu-sunken);
   color: #34d399;
   border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: var(--neu-inset);
 }
 
 .badge-serverless {
-  background-color: rgba(6, 182, 212, 0.12);
+  background-color: var(--bg-neu-sunken);
   color: var(--accent-cyber-cyan);
   border: 1px solid rgba(6, 182, 212, 0.3);
+  box-shadow: var(--neu-inset);
 }
 
 .api-status {
@@ -162,11 +167,11 @@ button:active,
   gap: var(--space-2);
   font-size: 0.8rem;
   color: var(--text-secondary);
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-neu-sunken);
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-full);
-  border: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-rim);
+  border: 1px solid var(--neu-border-dark);
+  box-shadow: var(--neu-inset);
 }
 
 .status-dot {
@@ -175,7 +180,7 @@ button:active,
   border-radius: 50%;
   background-color: var(--severity-medium);
   box-shadow: 0 0 6px var(--severity-medium);
-  transition: all var(--transition-snappy);
+  transition: var(--neu-transition);
   flex-shrink: 0;
 }
 
@@ -193,11 +198,11 @@ button:active,
    API CONFIG & ALERT BANNERS
    ============================================================================== */
 .api-config-banner {
-  background: linear-gradient(90deg, #10192e 0%, #0d1e38 100%);
-  border: 1px solid var(--border-strong);
+  background-color: var(--bg-neu-base);
+  border: var(--neu-border-hairline);
   border-radius: var(--radius-md);
   padding: var(--space-4) var(--space-5);
-  box-shadow: var(--shadow-rim);
+  box-shadow: var(--neu-extruded);
   animation: fadeIn 0.3s ease;
 }
 
@@ -230,20 +235,20 @@ button:active,
 
 .api-input-group input {
   flex: 1;
-  background-color: var(--bg-input);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-neu-sunken);
+  border: 1px solid var(--neu-border-dark);
   color: var(--text-primary);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: 0.85rem;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--neu-inset);
 }
 
 .api-input-group input:focus {
   outline: none;
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.25);
+  box-shadow: var(--neu-inset), 0 0 0 2px rgba(6, 182, 212, 0.25);
 }
 
 .alert-banner {
@@ -256,7 +261,7 @@ button:active,
   background-color: var(--severity-critical-bg);
   border: 1px solid var(--severity-critical-border);
   color: var(--text-primary);
-  box-shadow: var(--shadow-rim);
+  box-shadow: var(--neu-extruded-sm);
 }
 
 .alert-banner.alert-warning {
@@ -301,7 +306,7 @@ button:active,
   padding: var(--space-1) var(--space-2);
   line-height: 1;
   border-radius: var(--radius-sm);
-  transition: color var(--transition-snappy);
+  transition: var(--neu-transition);
 }
 
 .alert-close:hover {
@@ -309,7 +314,7 @@ button:active,
 }
 
 /* ==============================================================================
-   MAIN LAYOUT & CARDS (SYMMETRIC GRID ALIGNMENT)
+   MAIN LAYOUT & CARDS (SYMMETRIC GRID ALIGNMENT WITH GAP 24px)
    ============================================================================== */
 .main-layout {
   display: grid;
@@ -321,15 +326,16 @@ button:active,
 @media (max-width: 1024px) {
   .main-layout {
     grid-template-columns: 1fr;
+    gap: var(--space-5);
   }
 }
 
 .card {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-neu-base);
+  border: var(--neu-border-hairline);
   border-radius: var(--radius-lg);
   padding: var(--space-6);
-  box-shadow: var(--shadow-rim), var(--shadow-md);
+  box-shadow: var(--neu-extruded);
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -342,15 +348,15 @@ button:active,
   margin-bottom: var(--space-4);
 }
 
-/* Segmented Control Tabs (JSON vs HCL) */
+/* Segmented Control Tabs (JSON vs HCL - Sunken Chassis) */
 .type-selector {
   display: flex;
-  background-color: var(--bg-code);
+  background-color: var(--bg-neu-sunken);
   padding: 4px;
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--neu-border-dark);
   gap: 4px;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--neu-inset);
 }
 
 .tab-btn {
@@ -368,7 +374,7 @@ button:active,
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  transition: all var(--transition-snappy);
+  transition: var(--neu-transition);
 }
 
 .tab-btn:hover {
@@ -376,9 +382,10 @@ button:active,
 }
 
 .tab-btn.active {
-  background-color: var(--bg-elevated);
+  background: linear-gradient(145deg, #242933, #1a1e25);
   color: var(--text-primary);
-  box-shadow: var(--shadow-rim);
+  border: var(--neu-border-hairline);
+  box-shadow: var(--neu-extruded-sm);
 }
 
 .sample-actions {
@@ -399,7 +406,7 @@ button:active,
 }
 
 /* ==============================================================================
-   BUTTONS (LINEAR DARK & WCAG COMPLIANT)
+   BUTTONS (CONVEX & ELEVATED TACTILE BUTTONS)
    ============================================================================== */
 .btn {
   font-family: var(--font-sans);
@@ -407,18 +414,19 @@ button:active,
   font-weight: 600;
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-sm);
-  border: 1px solid transparent;
+  border: var(--neu-border-hairline);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  box-shadow: var(--shadow-rim);
-  transition: all var(--transition-snappy);
+  box-shadow: var(--neu-extruded-sm);
+  transition: var(--neu-transition);
 }
 
 .btn:active {
   transform: scale(0.98);
+  box-shadow: var(--neu-pressed);
 }
 
 .btn-sm {
@@ -427,15 +435,14 @@ button:active,
 }
 
 .btn-sample {
-  background-color: var(--bg-elevated);
+  background: linear-gradient(145deg, #242933, #1a1e25);
   color: #e2e8f0;
-  border: 1px solid var(--border-subtle);
 }
 
 .btn-sample:hover {
-  background-color: var(--bg-card-hover);
-  border-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px);
+  background: linear-gradient(145deg, #282e3a, #1d222b);
+  transform: translateY(-2px);
+  box-shadow: var(--neu-elevated-hover);
 }
 
 .btn-ghost {
@@ -446,33 +453,41 @@ button:active,
 }
 
 .btn-ghost:hover {
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-neu-elevated);
   color: var(--text-primary);
+  box-shadow: var(--neu-extruded-sm);
 }
 
 .btn-secondary {
-  background-color: var(--bg-elevated);
+  background: linear-gradient(145deg, #242933, #1a1e25);
   color: var(--text-primary);
-  border: 1px solid var(--border-subtle);
 }
 
 .btn-secondary:hover {
-  background-color: var(--bg-card-hover);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: linear-gradient(145deg, #282e3a, #1d222b);
+  transform: translateY(-2px);
+  box-shadow: var(--neu-elevated-hover);
 }
 
+/* Primary Convex High-Presence Button */
 .btn-primary {
   background: linear-gradient(135deg, var(--accent-technical-emerald) 0%, #059669 100%);
   color: #ffffff;
   font-size: 0.95rem;
   padding: var(--space-3) var(--space-6);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-rim), 0 4px 14px rgba(16, 185, 129, 0.35);
+  box-shadow: var(--neu-extruded-sm), 0 4px 14px rgba(16, 185, 129, 0.35);
 }
 
 .btn-primary:hover {
-  box-shadow: var(--shadow-rim), 0 6px 18px rgba(16, 185, 129, 0.5);
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+  box-shadow: var(--neu-elevated-hover), 0 6px 18px rgba(16, 185, 129, 0.5);
+  transform: translateY(-2px);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+  box-shadow: var(--neu-pressed);
 }
 
 .btn-block {
@@ -483,6 +498,7 @@ button:active,
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+  box-shadow: var(--neu-extruded-sm);
 }
 
 /* Spinner */
@@ -500,19 +516,19 @@ button:active,
 }
 
 /* ==============================================================================
-   EDITOR SECTION (CODE VIEWER)
+   EDITOR SECTION (CODE VIEWER IN DEEP SUNKEN CAVITY)
    ============================================================================== */
 .editor-wrapper {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background-color: var(--bg-code);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-neu-sunken);
+  border: 1px solid var(--neu-border-dark);
   border-radius: var(--radius-md);
   overflow: hidden;
   margin-bottom: var(--space-4);
   min-height: 420px;
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--neu-inset);
 }
 
 .editor-meta-bar {
@@ -520,8 +536,8 @@ button:active,
   justify-content: space-between;
   align-items: center;
   padding: var(--space-2) var(--space-4);
-  background-color: rgba(15, 23, 42, 0.85);
-  border-bottom: 1px solid var(--border-subtle);
+  background-color: #14171e;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.5);
   font-size: 0.75rem;
   color: var(--text-muted);
 }
@@ -578,7 +594,7 @@ button:active,
   align-items: center;
   margin-bottom: var(--space-4);
   padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--neu-border-dark);
 }
 
 .section-title {
@@ -591,9 +607,10 @@ button:active,
   font-size: 0.75rem;
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-full);
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-neu-sunken);
   color: var(--text-secondary);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--neu-border-dark);
+  box-shadow: var(--neu-inset);
 }
 
 /* Empty State */
@@ -604,11 +621,11 @@ button:active,
   justify-content: center;
   text-align: center;
   padding: var(--space-12) var(--space-6);
-  background-color: var(--bg-code);
-  border: 1px dashed var(--border-subtle);
+  background-color: var(--bg-neu-sunken);
+  border: 1px dashed var(--neu-border-light);
   border-radius: var(--radius-md);
   margin: auto 0;
-  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--neu-inset);
 }
 
 .empty-icon {
@@ -659,8 +676,8 @@ button:active,
 }
 
 .metric-card {
-  background-color: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-neu-base);
+  border: var(--neu-border-hairline);
   border-radius: var(--radius-md);
   padding: var(--space-4);
   display: flex;
@@ -668,7 +685,7 @@ button:active,
   gap: var(--space-4);
   height: 100%;
   min-height: 120px;
-  box-shadow: var(--shadow-rim);
+  box-shadow: var(--neu-extruded);
 }
 
 .score-card {
@@ -690,7 +707,7 @@ button:active,
 
 .score-circle-bg {
   fill: none;
-  stroke: #1e293b;
+  stroke: var(--bg-neu-sunken);
   stroke-width: 10;
 }
 
@@ -797,11 +814,11 @@ button:active,
   box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
 }
 
-/* Severity Breakdown Counters (Symmetric 4-Grid) */
+/* Severity Breakdown Counters (Symmetric 4-Grid with Soft Inset/Extruded Pills) */
 .severity-counters {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-2);
+  gap: var(--space-3);
   align-items: stretch;
 }
 
@@ -819,8 +836,8 @@ button:active,
 }
 
 .severity-pill {
-  background-color: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-neu-base);
+  border: var(--neu-border-hairline);
   border-radius: var(--radius-sm);
   padding: var(--space-2) var(--space-3);
   display: flex;
@@ -828,7 +845,7 @@ button:active,
   gap: var(--space-2);
   font-size: 0.75rem;
   min-height: 42px;
-  box-shadow: var(--shadow-rim);
+  box-shadow: var(--neu-extruded-sm);
 }
 
 .pill-dot {
@@ -864,7 +881,7 @@ button:active,
   border: 1px solid var(--severity-low-border);
   padding: var(--space-4);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-rim);
+  box-shadow: var(--neu-extruded-sm);
   animation: fadeIn 0.4s ease;
 }
 
@@ -918,30 +935,30 @@ button:active,
   width: 6px;
 }
 .findings-list::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--bg-neu-sunken);
 }
 .findings-list::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.12);
   border-radius: 3px;
 }
 
-/* Finding Card */
+/* Finding Card - Extruded with Lift on Hover */
 .finding-card {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-neu-base);
+  border: var(--neu-border-hairline);
   border-left-width: 4px;
   border-radius: var(--radius-md);
   padding: var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  box-shadow: var(--shadow-rim);
-  transition: transform var(--transition-snappy), border-color var(--transition-snappy);
+  box-shadow: var(--neu-extruded);
+  transition: var(--neu-transition);
 }
 
 .finding-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: var(--neu-elevated-hover);
 }
 
 .finding-card.severity-CRITICAL {
@@ -973,9 +990,10 @@ button:active,
   font-weight: 700;
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-neu-sunken);
   color: var(--accent-cyber-cyan);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--neu-border-dark);
+  box-shadow: var(--neu-inset);
 }
 
 .finding-severity-badge {
@@ -985,6 +1003,7 @@ button:active,
   border-radius: var(--radius-full);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  box-shadow: var(--neu-extruded-sm);
 }
 
 .severity-badge-CRITICAL {
@@ -1024,14 +1043,15 @@ button:active,
 }
 
 .finding-rec-box {
-  background-color: var(--bg-code);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-neu-sunken);
+  border: 1px solid var(--neu-border-dark);
   border-radius: var(--radius-sm);
   padding: var(--space-3);
   font-size: 0.8rem;
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+  box-shadow: var(--neu-inset);
 }
 
 .rec-label {
@@ -1050,14 +1070,14 @@ button:active,
 }
 
 /* ==============================================================================
-   FOOTER
+   FOOTER (CONTINUOUS BASE)
    ============================================================================== */
 .app-footer {
   text-align: center;
   padding: var(--space-4);
   color: var(--text-muted);
   font-size: 0.8rem;
-  border-top: 1px solid var(--border-subtle);
+  border-top: var(--neu-border-hairline);
 }
 
 .footer-sub {
