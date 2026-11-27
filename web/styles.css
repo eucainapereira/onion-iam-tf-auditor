@@ -1,10 +1,14 @@
-@import "tokens.css";
-
 /* ==============================================================================
    ONION AUDITOR — CYBER GOVERNANCE DARK STYLESHEET
-   Layer 3: Design Tokens, Symmetric Grid & Structural Alignment
+   Layer 4: Typography, Component Craftsmanship & Mobile-First Responsiveness
    Architecture: Zero-Build Modern CSS3 / 100% S3+CloudFront Static Compatible
+   Safe System Font Fallbacks: -apple-system, sans-serif, monospace
    ============================================================================== */
+
+:root {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
 
 html {
   box-sizing: border-box;
@@ -29,6 +33,29 @@ body {
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
   max-width: 100vw;
+}
+
+/* ==============================================================================
+   UNIVERSAL ACCESSIBILITY, FOCUS-VISIBLE & MICRO-INTERACTIONS
+   ============================================================================== */
+:focus-visible {
+  outline: 2px solid var(--accent-cyber-cyan);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent-cyber-cyan);
+  outline-offset: 2px;
+}
+
+button:active,
+.btn:active,
+.tab-btn:active,
+.alert-close:active {
+  transform: scale(0.98);
 }
 
 @media (max-width: 768px) {
@@ -60,6 +87,18 @@ body {
   box-shadow: var(--shadow-rim), var(--shadow-md);
   flex-wrap: wrap;
   gap: var(--space-4);
+}
+
+@media (max-width: 768px) {
+  .app-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+  .header-meta {
+    justify-content: space-between;
+    width: 100%;
+  }
 }
 
 .header-brand {
@@ -346,6 +385,17 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+}
+
+@media (max-width: 480px) {
+  .sample-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  .sample-actions .btn {
+    width: 100%;
+    min-height: 42px;
+  }
 }
 
 /* ==============================================================================
@@ -755,9 +805,16 @@ body {
   align-items: stretch;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   .severity-counters {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .severity-pill {
+    min-height: 44px;
+    font-size: 0.72rem;
   }
 }
 
