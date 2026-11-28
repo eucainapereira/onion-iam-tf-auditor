@@ -60,6 +60,19 @@
   --shadow-neu-sunken: var(--neu-inset);
   --shadow-neu-button: var(--neu-extruded-sm);
   --shadow-neu-button-active: var(--neu-pressed);
+
+  /* --- Translucent Glass Button Tokens (botoes-translucidos-pro) --- */
+  --glass-btn-blur: 14px;
+  --glass-btn-saturate: 170%;
+  --glass-btn-bg-neutral: rgba(255, 255, 255, 0.08);
+  --glass-btn-bg-neutral-hover: rgba(255, 255, 255, 0.13);
+  --glass-btn-bg-neutral-active: rgba(255, 255, 255, 0.05);
+  --glass-btn-border-neutral: rgba(255, 255, 255, 0.12);
+  --glass-btn-border-neutral-hover: rgba(255, 255, 255, 0.22);
+  --glass-btn-rim: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(0, 0, 0, 0.20);
+  --glass-btn-rim-hover: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -1px 0 rgba(0, 0, 0, 0.20);
+  --glass-btn-shadow: 0 4px 14px rgba(0, 0, 0, 0.30);
+  --glass-btn-shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.38);
   --shadow-rim: 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 1px 0 var(--neu-rim);
   --shadow-sm: var(--neu-extruded-sm);
   --shadow-md: var(--neu-extruded);

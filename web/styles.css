@@ -54,17 +54,14 @@ textarea:focus-visible {
 
 button:active,
 button[aria-pressed="true"],
-button.active,
 .btn:active,
 .tab-btn:active,
 .alert-close:active,
 .btn[aria-pressed="true"],
-.tab-btn[aria-pressed="true"],
-.btn.active,
-.tab-btn.active {
+.tab-btn[aria-pressed="true"] {
   transform: scale(0.98);
-  box-shadow: var(--neu-pressed) !important;
-  background-color: var(--bg-neu-pressed);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 @media (max-width: 768px) {
@@ -305,19 +302,31 @@ button.active,
 }
 
 .alert-close {
-  background: transparent;
-  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.10);
   color: var(--text-secondary);
   cursor: pointer;
   font-size: 1.1rem;
   padding: var(--space-1) var(--space-2);
   line-height: 1;
   border-radius: var(--radius-sm);
-  transition: var(--neu-transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  transition: background-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1),
+              color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .alert-close:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.20);
   color: var(--text-primary);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 /* ==============================================================================
@@ -368,8 +377,8 @@ button.active,
 
 .tab-btn {
   flex: 1;
-  background: transparent;
-  border: none;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   color: var(--text-secondary);
   font-family: var(--font-sans);
   font-size: 0.85rem;
@@ -381,18 +390,29 @@ button.active,
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  transition: var(--neu-transition);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  transition: background-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+              color 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .tab-btn:hover {
   color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .tab-btn.active {
-  background: var(--bg-neu-pressed);
-  color: var(--text-primary);
-  border: var(--neu-border-hairline);
-  box-shadow: var(--neu-pressed);
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(14px) saturate(175%);
+  -webkit-backdrop-filter: blur(14px) saturate(175%);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.40);
 }
 
 .sample-actions {
@@ -413,7 +433,8 @@ button.active,
 }
 
 /* ==============================================================================
-   BUTTONS (CONVEX & ELEVATED TACTILE BUTTONS)
+   BUTTONS (TRANSLUCENT GLASSMORPHISM / FROSTED & LIQUID GLASS)
+   botoes-translucidos-pro: 4-Layer Optical Architecture, WCAG AA, GPU Optimized
    ============================================================================== */
 .btn {
   font-family: var(--font-sans);
@@ -421,19 +442,30 @@ button.active,
   font-weight: 600;
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-sm);
-  border: var(--neu-border-hairline);
+  border: 1px solid var(--glass-btn-border-neutral, rgba(255, 255, 255, 0.12));
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  box-shadow: var(--neu-extruded-sm);
-  transition: var(--neu-transition);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.40);
+  background: var(--glass-btn-bg-neutral, rgba(255, 255, 255, 0.08));
+  color: var(--text-primary);
+  box-shadow: var(--glass-btn-shadow, 0 4px 14px rgba(0, 0, 0, 0.30)), var(--glass-btn-rim, inset 0 1px 0 rgba(255, 255, 255, 0.22));
+  backdrop-filter: blur(14px) saturate(170%);
+  -webkit-backdrop-filter: blur(14px) saturate(170%);
+  isolation: isolate;
+  transition: background-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+              color 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn:active {
   transform: scale(0.98);
-  box-shadow: var(--neu-pressed);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 .btn-sm {
@@ -441,71 +473,165 @@ button.active,
   padding: var(--space-1) var(--space-3);
 }
 
+/* Frosted Glass Sample Action Buttons */
 .btn-sample {
-  background: linear-gradient(145deg, #242933, #1a1e25);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.04) 100%);
   color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(0, 0, 0, 0.20);
+  backdrop-filter: blur(14px) saturate(170%);
+  -webkit-backdrop-filter: blur(14px) saturate(170%);
 }
 
 .btn-sample:hover {
-  background: linear-gradient(145deg, #282e3a, #1d222b);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.09) 100%);
+  border-color: rgba(255, 255, 255, 0.24);
+  color: #ffffff;
   transform: translateY(-2px);
-  box-shadow: var(--neu-elevated-hover);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -1px 0 rgba(0, 0, 0, 0.20);
 }
 
+/* Ghost Glass Tertiary Button */
 .btn-ghost {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.03);
   color: var(--text-muted);
-  border: 1px solid transparent;
+  border: 1px solid rgba(255, 255, 255, 0.07);
   box-shadow: none;
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
 }
 
 .btn-ghost:hover {
-  background-color: var(--bg-neu-elevated);
+  background-color: rgba(255, 255, 255, 0.10);
   color: var(--text-primary);
-  box-shadow: var(--neu-extruded-sm);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
 }
 
+/* Frosted Glass Secondary Button */
 .btn-secondary {
-  background: linear-gradient(145deg, #242933, #1a1e25);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.04) 100%);
   color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(0, 0, 0, 0.20);
+  backdrop-filter: blur(14px) saturate(170%);
+  -webkit-backdrop-filter: blur(14px) saturate(170%);
 }
 
 .btn-secondary:hover {
-  background: linear-gradient(145deg, #282e3a, #1d222b);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.08) 100%);
+  border-color: rgba(255, 255, 255, 0.22);
   transform: translateY(-2px);
-  box-shadow: var(--neu-elevated-hover);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.32), inset 0 -1px 0 rgba(0, 0, 0, 0.20);
 }
 
-/* Primary Convex High-Presence Button */
+/* Primary Translucent Liquid Glass CTA (Emerald Security Glow) */
 .btn-primary {
-  background: linear-gradient(135deg, var(--accent-technical-emerald) 0%, #059669 100%);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.28) 0%, rgba(5, 150, 105, 0.20) 100%);
   color: #ffffff;
   font-size: 0.95rem;
   padding: var(--space-3) var(--space-6);
   border-radius: var(--radius-md);
-  box-shadow: var(--neu-extruded-sm), 0 4px 14px rgba(16, 185, 129, 0.35);
+  box-shadow: 0 4px 18px rgba(16, 185, 129, 0.25), 0 2px 6px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 0 16px rgba(16, 185, 129, 0.15), inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(52, 211, 153, 0.45);
+  backdrop-filter: blur(14px) saturate(175%);
+  -webkit-backdrop-filter: blur(14px) saturate(175%);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.50);
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, #10b981 0%, #047857 100%);
-  box-shadow: var(--neu-elevated-hover), 0 6px 18px rgba(16, 185, 129, 0.5);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.38) 0%, rgba(5, 150, 105, 0.28) 100%);
+  box-shadow: 0 6px 24px rgba(16, 185, 129, 0.40), 0 4px 10px rgba(0, 0, 0, 0.40), inset 0 1px 0 rgba(255, 255, 255, 0.60), inset 0 0 20px rgba(16, 185, 129, 0.25), inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+  border-color: rgba(52, 211, 153, 0.65);
   transform: translateY(-2px);
 }
 
 .btn-primary:active {
   transform: scale(0.98);
-  box-shadow: var(--neu-pressed);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(5, 150, 105, 0.15) 100%);
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.50), inset 0 1px 0 rgba(255, 255, 255, 0.20) !important;
 }
 
 .btn-block {
   width: 100%;
 }
 
+.btn:disabled,
 .btn-primary:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: not-allowed;
-  transform: none;
-  box-shadow: var(--neu-extruded-sm);
+  transform: none !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  pointer-events: none;
+}
+
+/* Fallbacks para navegadores sem suporte a backdrop-filter */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .btn,
+  .btn-sample,
+  .btn-secondary,
+  .tab-btn,
+  .alert-close {
+    background-color: #242933;
+  }
+  .btn-primary {
+    background: #059669;
+  }
+  .btn-ghost {
+    background-color: #1e222a;
+  }
+  .tab-btn.active {
+    background-color: #2d3340;
+  }
+}
+
+/* Fallback para Usuários com Redução de Transparência (Acessibilidade) */
+@media (prefers-reduced-transparency: reduce) {
+  .btn,
+  .btn-sample,
+  .btn-secondary,
+  .tab-btn,
+  .alert-close {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background-color: #242933 !important;
+    border-color: rgba(255, 255, 255, 0.25) !important;
+  }
+  .btn-primary {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: #059669 !important;
+    border-color: #34d399 !important;
+  }
+  .btn-ghost {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background-color: #1a1e25 !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+  }
+  .tab-btn.active {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background-color: #2d3340 !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+  }
+}
+
+/* Fallback para Usuários com Redução de Movimento (Acessibilidade) */
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .btn:hover,
+  .btn:active,
+  .tab-btn,
+  .tab-btn:hover,
+  .tab-btn:active,
+  .alert-close,
+  .alert-close:hover,
+  .alert-close:active {
+    transition: none !important;
+    transform: none !important;
+  }
 }
 
 /* Spinner */
